@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  background: #0e1620;
+  color: #edf1f5;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Perforated / receipt-stub edge, used for the daily summary card */
+.receipt-edge {
+  position: relative;
+}
+.receipt-edge::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 10px;
+  background-image: radial-gradient(circle at 8px 0, transparent 7px, #0e1620 7px);
+  background-size: 16px 10px;
+  background-repeat: repeat-x;
+}
+
+.divider-dashed {
+  border-bottom: 1px dashed #26333f;
+}
+
+::selection {
+  background: #1479ff55;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #print-area,
+  #print-area * {
+    visibility: visible;
+  }
+  #print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    color: #000;
+    background: #fff;
+  }
+}
