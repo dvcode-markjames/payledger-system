@@ -101,8 +101,9 @@ supabase/schema.sql     Database schema, defaults, RLS policies
 
 ## Notes
 
-- Balances update on every transaction: Cash In **adds** to the platform
-  balance, Cash Out / Load / Bank Transfer **subtracts** from it — matching
+- Balances update on every transaction: Cash In **subtracts** from the platform
+  balance (we send GCash/Maya to the customer), Cash Out / Load / Bank Transfer
+  **add** to it (we receive GCash/Maya from the customer) — matching
   how the balance is tracked day to day. You can also edit a balance directly
   at any time from the Log page.
 - All commission brackets and fees are stored in the database (`app_settings`

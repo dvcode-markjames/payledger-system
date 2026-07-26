@@ -75,10 +75,17 @@ export default function LogPage() {
     return 0;
   }, [numericAmount, type, settings]);
 
-  const isCashIn = type === "cash_in" || type === "maya_cash_in";
+  // These types all work the same way: WE send GCash/Maya out of our own
+  // float (customer pays us cash in return), so they share the same
+  // "customer pays cash" direction as Cash In.
+  //   - Cash In: customer's e-wallet gets loaded from our float
+  //   - Load: we buy phone load using our float, customer pays cash
+  //   - Bank Transfer: we send to the customer's bank using our float, customer pays cash
+  // Cash Out is the opposite: customer sends US e-money, we hand them cash.
+  const isMoneyOut = type === "cash_in" || type === "maya_cash_in" || type === "load" || type === "bank_transfer";
   const netTotal = !commissionIncluded
     ? numericAmount
-    : isCashIn
+    : isMoneyOut
     ? numericAmount + commission
     : numericAmount - commission;
 
@@ -230,7 +237,7 @@ export default function LogPage() {
               <span className="font-mono tabular text-in">₱{commission.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-sm py-2">
-              <span className="text-text-mid">{isCashIn ? "Customer pays (cash)" : "Customer receives (cash)"}</span>
+              <span className="text-text-mid">{isMoneyOut ? "Customer pays (cash)" : "Customer receives (cash)"}</span>
               <span className="font-mono tabular font-semibold">
                 ₱{netTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </span>
@@ -248,7 +255,7 @@ export default function LogPage() {
                 }`}
               >
                 <span>
-                  {isCashIn
+                  {isMoneyOut
                     ? "Net commission into what customer pays"
                     : "Net commission into customer's payout"}
                 </span>
@@ -270,7 +277,7 @@ export default function LogPage() {
               </button>
               <p className="text-xs text-text-low mt-1.5">
                 {commissionIncluded
-                  ? isCashIn
+                  ? isMoneyOut
                     ? `Off by default, the customer would pay ₱${numericAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })} and the commission separately. With this on, they pay ₱${netTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })} total instead.`
                     : `Off by default, the customer would receive the full ₱${numericAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })} and pay the commission separately. With this on, they receive ₱${netTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })} instead.`
                   : "Default: commission is collected separately and only recorded here, not netted in."}
