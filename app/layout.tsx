@@ -1,20 +1,20 @@
 import type { Metadata, Viewport } from "next";
-import { Space_Grotesk, Inter, IBM_Plex_Mono } from "next/font/google";
+import { Rubik } from "next/font/google";
 import "./globals.css";
 
-const display = Space_Grotesk({
+const display = Rubik({
   subsets: ["latin"],
   variable: "--font-display",
-  weight: ["500", "700"],
+  weight: ["500", "600", "700"],
 });
 
-const body = Inter({
+const body = Rubik({
   subsets: ["latin"],
   variable: "--font-body",
   weight: ["400", "500", "600"],
 });
 
-const mono = IBM_Plex_Mono({
+const mono = Rubik({
   subsets: ["latin"],
   variable: "--font-mono",
   weight: ["400", "500", "600"],

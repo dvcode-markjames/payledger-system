@@ -83,6 +83,7 @@ export default function LogPage() {
     : numericAmount - commission;
 
   const currentBalance = platform === "gcash" ? gcashBal : mayaBal;
+  const isGcash = platform === "gcash";
 
   async function handleBalanceSave(platformToEdit: Platform, value: number) {
     setErrorMsg(null);
@@ -194,7 +195,11 @@ export default function LogPage() {
                   key={t}
                   onClick={() => setType(t)}
                   className={`py-2.5 rounded-lg border text-sm font-medium ${
-                    type === t ? "border-gcash text-gcash bg-gcash/10" : "border-ink-line text-text-mid"
+                    type === t
+                      ? isGcash
+                        ? "border-gcash text-gcash bg-gcash/10"
+                        : "border-maya text-maya bg-maya/10"
+                      : "border-ink-line text-text-mid"
                   }`}
                 >
                   {TX_LABELS[t]}
@@ -212,7 +217,9 @@ export default function LogPage() {
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0.00"
-              className="mt-1 w-full rounded-lg bg-ink-card border border-ink-line px-3 py-3 font-mono tabular text-xl outline-none focus:border-gcash"
+              className={`mt-1 w-full rounded-lg bg-ink-card border border-ink-line px-3 py-3 font-mono tabular text-xl outline-none ${
+                isGcash ? "focus:border-gcash" : "focus:border-maya"
+              }`}
             />
           </div>
 
@@ -234,7 +241,9 @@ export default function LogPage() {
                 onClick={() => setCommissionIncluded((v) => !v)}
                 className={`w-full flex items-center justify-between rounded-lg border px-3 py-2.5 text-sm transition-colors ${
                   commissionIncluded
-                    ? "border-gcash bg-gcash/10 text-gcash"
+                    ? isGcash
+                      ? "border-gcash bg-gcash/10 text-gcash"
+                      : "border-maya bg-maya/10 text-maya"
                     : "border-ink-line text-text-mid"
                 }`}
               >
@@ -245,12 +254,16 @@ export default function LogPage() {
                 </span>
                 <span
                   className={`relative w-9 h-5 rounded-full transition-colors shrink-0 ml-3 ${
-                    commissionIncluded ? "bg-gcash" : "bg-ink-line"
+                    commissionIncluded
+                      ? isGcash
+                        ? "bg-gcash"
+                        : "bg-maya"
+                      : "bg-ink-line"
                   }`}
                 >
                   <span
-                    className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
-                      commissionIncluded ? "translate-x-4" : "translate-x-0.5"
+                    className={`absolute left-0.5 top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+                      commissionIncluded ? "translate-x-4" : "translate-x-0"
                     }`}
                   />
                 </span>
@@ -271,20 +284,26 @@ export default function LogPage() {
               value={reference}
               onChange={(e) => setReference(e.target.value)}
               placeholder="Reference no."
-              className="rounded-lg bg-ink-card border border-ink-line px-3 py-2.5 text-sm outline-none focus:border-gcash"
+              className={`rounded-lg bg-ink-card border border-ink-line px-3 py-2.5 text-sm outline-none ${
+                isGcash ? "focus:border-gcash" : "focus:border-maya"
+              }`}
             />
             <input
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="Note (optional)"
-              className="rounded-lg bg-ink-card border border-ink-line px-3 py-2.5 text-sm outline-none focus:border-gcash"
+              className={`rounded-lg bg-ink-card border border-ink-line px-3 py-2.5 text-sm outline-none ${
+                isGcash ? "focus:border-gcash" : "focus:border-maya"
+              }`}
             />
           </div>
 
           <button
             type="submit"
             disabled={saving || numericAmount <= 0}
-            className="w-full rounded-xl bg-gcash text-white font-semibold py-3.5 disabled:opacity-50 flex items-center justify-center gap-2"
+            className={`w-full rounded-xl text-white font-semibold py-3.5 disabled:opacity-50 flex items-center justify-center gap-2 ${
+              isGcash ? "bg-gcash" : "bg-maya"
+            }`}
           >
             {success ? (
               <>
