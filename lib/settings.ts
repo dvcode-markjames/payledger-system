@@ -9,10 +9,13 @@ export async function fetchSettings(supabase: SupabaseClient): Promise<AppSettin
   return {
     gcash_tiers: map.gcash_tiers ?? DEFAULT_SETTINGS.gcash_tiers,
     maya_tiers: map.maya_tiers ?? DEFAULT_SETTINGS.maya_tiers,
-    maya_fixed_fee: map.maya_fixed_fee ?? DEFAULT_SETTINGS.maya_fixed_fee,
-    maya_load_commission: map.maya_load_commission ?? DEFAULT_SETTINGS.maya_load_commission,
-    maya_banktransfer_commission:
-      map.maya_banktransfer_commission ?? DEFAULT_SETTINGS.maya_banktransfer_commission,
+    // Falls back to the old shared "maya_fixed_fee" key for accounts that
+    // saved settings before Load/Bank Transfer fees were split apart.
+    maya_load_fixed_fee: map.maya_load_fixed_fee ?? map.maya_fixed_fee ?? DEFAULT_SETTINGS.maya_load_fixed_fee,
+    maya_banktransfer_fixed_fee:
+      map.maya_banktransfer_fixed_fee ?? map.maya_fixed_fee ?? DEFAULT_SETTINGS.maya_banktransfer_fixed_fee,
+    maya_load_tiers: map.maya_load_tiers ?? DEFAULT_SETTINGS.maya_load_tiers,
+    maya_banktransfer_tiers: map.maya_banktransfer_tiers ?? DEFAULT_SETTINGS.maya_banktransfer_tiers,
   };
 }
 

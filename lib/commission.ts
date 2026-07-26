@@ -34,12 +34,12 @@ export function calcTieredCommission(amount: number, tiers: Tier[]): number {
   return fullBlocks * blockFee + remainderFee;
 }
 
-/** Maya Load: Maya's own fixed fee + our own added commission. */
-export function calcLoadCommission(mayaFixedFee: number, ourCommission: number): number {
-  return Math.max(0, mayaFixedFee) + Math.max(0, ourCommission);
+/** Maya Load: Maya's own fixed fee + our tiered commission (bracket-based, same rule as calcTieredCommission). */
+export function calcLoadCommission(mayaFixedFee: number, tiers: Tier[], amount: number): number {
+  return Math.max(0, mayaFixedFee) + calcTieredCommission(amount, tiers);
 }
 
-/** Maya Bank Transfer: Maya's own fixed fee + our optional added commission. */
-export function calcBankTransferCommission(mayaFixedFee: number, ourCommission: number): number {
-  return Math.max(0, mayaFixedFee) + Math.max(0, ourCommission);
+/** Maya Bank Transfer: Maya's own fixed fee + our tiered commission (bracket-based, same rule as calcTieredCommission). */
+export function calcBankTransferCommission(mayaFixedFee: number, tiers: Tier[], amount: number): number {
+  return Math.max(0, mayaFixedFee) + calcTieredCommission(amount, tiers);
 }

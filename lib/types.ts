@@ -21,6 +21,7 @@ export interface Transaction {
   type: TxType;
   amount: number;
   commission: number;
+  commission_included: boolean; // true if commission was netted into net_total instead of charged separately
   net_total: number; // what the customer actually receives / pays
   balance_after: number | null;
   reference_no: string | null;
@@ -30,9 +31,10 @@ export interface Transaction {
 export interface AppSettings {
   gcash_tiers: Tier[];
   maya_tiers: Tier[];
-  maya_fixed_fee: number;
-  maya_load_commission: number;
-  maya_banktransfer_commission: number;
+  maya_load_fixed_fee: number;
+  maya_banktransfer_fixed_fee: number;
+  maya_load_tiers: Tier[];
+  maya_banktransfer_tiers: Tier[];
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -46,9 +48,10 @@ export const DEFAULT_SETTINGS: AppSettings = {
     { min: 101, max: 500, fee: 10 },
     { min: 501, max: 1000, fee: 15 },
   ],
-  maya_fixed_fee: 10,
-  maya_load_commission: 5,
-  maya_banktransfer_commission: 0,
+  maya_load_fixed_fee: 10,
+  maya_banktransfer_fixed_fee: 10,
+  maya_load_tiers: [{ min: 1, max: 1000, fee: 5 }],
+  maya_banktransfer_tiers: [{ min: 1, max: 1000, fee: 0 }],
 };
 
 export const TX_LABELS: Record<TxType, string> = {

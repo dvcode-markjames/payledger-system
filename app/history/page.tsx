@@ -66,6 +66,7 @@ export default function HistoryPage() {
       Type: TX_LABELS[t.type],
       Amount: t.amount,
       Commission: t.commission,
+      "Commission netted in": t.commission_included ? "Yes" : "No",
       "Net total": t.net_total,
       "Balance after": t.balance_after,
       Reference: t.reference_no ?? "",
@@ -167,6 +168,7 @@ export default function HistoryPage() {
                   <th className="px-4 py-3 text-right">Amount</th>
                   <th className="px-4 py-3 text-right">Commission</th>
                   <th className="px-4 py-3 text-right">Net total</th>
+                  <th className="px-4 py-3">Fee</th>
                   <th className="px-4 py-3">Reference</th>
                   <th className="px-4 py-3">Note</th>
                 </tr>
@@ -186,13 +188,24 @@ export default function HistoryPage() {
                     <td className="px-4 py-3 text-right font-mono tabular">₱{Number(t.amount).toFixed(2)}</td>
                     <td className="px-4 py-3 text-right font-mono tabular text-in">₱{Number(t.commission).toFixed(2)}</td>
                     <td className="px-4 py-3 text-right font-mono tabular">₱{Number(t.net_total).toFixed(2)}</td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`text-xs px-2 py-1 rounded-md border ${
+                          t.commission_included
+                            ? "border-gcash/40 text-gcash bg-gcash/10"
+                            : "border-ink-line text-text-low"
+                        }`}
+                      >
+                        {t.commission_included ? "Netted in" : "Separate"}
+                      </span>
+                    </td>
                     <td className="px-4 py-3 text-text-low">{t.reference_no ?? "—"}</td>
                     <td className="px-4 py-3 text-text-low">{t.note ?? "—"}</td>
                   </tr>
                 ))}
                 {!loading && filtered.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="px-4 py-10 text-center text-text-low">
+                    <td colSpan={9} className="px-4 py-10 text-center text-text-low">
                       No transactions match these filters.
                     </td>
                   </tr>
@@ -205,7 +218,7 @@ export default function HistoryPage() {
                   </td>
                   <td className="px-4 py-3 text-right font-mono tabular">₱{totals.amount.toFixed(2)}</td>
                   <td className="px-4 py-3 text-right font-mono tabular text-in">₱{totals.commission.toFixed(2)}</td>
-                  <td colSpan={3} />
+                  <td colSpan={4} />
                 </tr>
               </tfoot>
             </table>
@@ -228,6 +241,15 @@ export default function HistoryPage() {
                     <ArrowUpCircle size={14} className="text-out" />
                   )}
                   {TX_LABELS[t.type]}
+                  <span
+                    className={`ml-auto text-[10px] px-1.5 py-0.5 rounded border ${
+                      t.commission_included
+                        ? "border-gcash/40 text-gcash bg-gcash/10"
+                        : "border-ink-line text-text-low"
+                    }`}
+                  >
+                    {t.commission_included ? "Fee netted in" : "Fee separate"}
+                  </span>
                 </div>
                 <div className="grid grid-cols-3 gap-2 text-xs">
                   <div>
