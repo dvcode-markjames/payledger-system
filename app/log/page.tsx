@@ -110,6 +110,15 @@ export default function LogPage() {
     setSaving(true);
     setErrorMsg(null);
 
+    // Maya deducts its own fixed fee straight from our Maya balance on top
+    // of the transaction amount, but only for Load / Bank Transfer.
+    const mayaFee =
+      type === "load"
+        ? settings.maya_load_fixed_fee
+        : type === "bank_transfer"
+        ? settings.maya_banktransfer_fixed_fee
+        : 0;
+
     const { error } = await supabase.rpc("log_transaction", {
       p_platform: platform,
       p_type: type,
@@ -118,6 +127,7 @@ export default function LogPage() {
       p_commission_included: commissionIncluded,
       p_reference_no: reference || null,
       p_note: note || null,
+      p_maya_fee: mayaFee,
     });
 
     if (error) {
