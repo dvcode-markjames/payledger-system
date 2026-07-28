@@ -14,6 +14,8 @@ export interface Tier {
   fee: number;
 }
 
+export type TxStatus = "pending" | "completed" | "failed";
+
 export interface Transaction {
   id: string;
   created_at: string;
@@ -26,7 +28,17 @@ export interface Transaction {
   balance_after: number | null;
   reference_no: string | null;
   note: string | null;
+  customer_mobile: string | null;
+  status: TxStatus;
 }
+
+// Best-effort app deep links. These schemes aren't officially published by
+// GCash/Maya and can change, so we always fall back to opening the app's
+// web/store link in a new tab if the scheme doesn't launch the app.
+export const APP_DEEP_LINKS: Record<Platform, { app: string; fallback: string; label: string }> = {
+  gcash: { app: "gcash://", fallback: "https://www.gcash.com/", label: "Open GCash" },
+  maya: { app: "maya://", fallback: "https://www.maya.ph/", label: "Open Maya" },
+};
 
 export interface AppSettings {
   gcash_tiers: Tier[];
