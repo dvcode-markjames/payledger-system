@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { fetchSettings } from "@/lib/settings";
 import { useRole } from "@/lib/useRole";
 import { calcTieredCommission, calcLoadCommission, calcBankTransferCommission } from "@/lib/commission";
-import { AppSettings, DEFAULT_SETTINGS, Platform, TxType, TX_LABELS, APP_DEEP_LINKS } from "@/lib/types";
+import { AppSettings, DEFAULT_SETTINGS, Platform, TxType, TX_LABELS, APP_DEEP_LINKS, DEEP_LINK_PATHS } from "@/lib/types";
 import AppShell from "@/components/AppShell";
 import BalanceEditModal from "@/components/BalanceEditModal";
 import { Pencil, Check, Lock, ArrowLeft, ExternalLink } from "lucide-react";
@@ -128,7 +128,13 @@ export default function LogPage() {
     // Best-effort: try the app's URL scheme first. Since these schemes
     // aren't officially published and vary by device, always give a
     // fallback link too in case nothing happens.
-    window.open(deepLink.app, "_blank");
+    // Screen-specific paths below are reverse-engineered (not officially
+    // documented by GCash/Maya) and may need updating or removal if they
+    // stop working after an app update — there's no way to detect failure
+    // on web, so the "Open GCash"/"Open Maya" fallback link stays as-is.
+    const path = DEEP_LINK_PATHS[type]?.[platform];
+    const url = `${deepLink.app}${path ?? ""}`;
+    window.open(url, "_blank");
     setOpenedApp(true);
   }
 

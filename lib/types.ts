@@ -40,6 +40,15 @@ export const APP_DEEP_LINKS: Record<Platform, { app: string; fallback: string; l
   maya: { app: "maya://", fallback: "https://www.maya.ph/", label: "Open Maya" },
 };
 
+// UNOFFICIAL, reverse-engineered screen deep-link paths, appended after the
+// app scheme (e.g. "gcash://" + "send"). Not documented by GCash/Maya, not
+// verified against current app builds, and may break or need updating after
+// an app update — treat as a best-effort guess, not a supported API.
+export const DEEP_LINK_PATHS: Partial<Record<TxType, { gcash?: string; maya?: string }>> = {
+  // Guessed "send money" screen path for a bank transfer.
+  bank_transfer: { gcash: "send", maya: "send" },
+};
+
 export interface AppSettings {
   gcash_tiers: Tier[];
   maya_tiers: Tier[];
