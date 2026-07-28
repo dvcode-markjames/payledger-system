@@ -30,6 +30,8 @@ export interface Transaction {
   note: string | null;
   customer_mobile: string | null;
   status: TxStatus;
+  note_edited_at?: string | null;
+  note_edited_by?: string | null;
 }
 
 // Best-effort app deep links. These schemes aren't officially published by
@@ -46,7 +48,7 @@ export const APP_DEEP_LINKS: Record<Platform, { app: string; fallback: string; l
 // an app update — treat as a best-effort guess, not a supported API.
 export const DEEP_LINK_PATHS: Partial<Record<TxType, { gcash?: string; maya?: string }>> = {
   // Guessed "send money" screen path for a bank transfer.
-  bank_transfer: { gcash: "expresssend", maya: "send" },
+  bank_transfer: { gcash: "send", maya: "send" },
 };
 
 export interface AppSettings {

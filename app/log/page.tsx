@@ -295,7 +295,7 @@ export default function LogPage() {
                   value={customerMobile}
                   onChange={(e) => setCustomerMobile(e.target.value.replace(/[^\d]/g, "").slice(0, 11))}
                   placeholder="09XXXXXXXXX"
-                  className={`mt-1 w-full rounded-lg bg-ink-card border px-3 py-3 font-mono tabular outline-none ${
+                  className={`mt-1 w-full rounded-lg bg-ink-card border px-3 py-3 font-mono tabular text-text-hi placeholder:text-text-low outline-none ${
                     customerMobile && !mobileValid
                       ? "border-red-500/60"
                       : isGcash
@@ -316,7 +316,7 @@ export default function LogPage() {
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="0.00"
-                  className={`mt-1 w-full rounded-lg bg-ink-card border border-ink-line px-3 py-3 font-mono tabular text-xl outline-none ${
+                  className={`mt-1 w-full rounded-lg bg-ink-card border border-ink-line px-3 py-3 font-mono tabular text-xl text-text-hi placeholder:text-text-low outline-none ${
                     isGcash ? "focus:border-gcash" : "focus:border-maya"
                   }`}
                 />
@@ -366,7 +366,7 @@ export default function LogPage() {
                   value={reference}
                   onChange={(e) => setReference(e.target.value)}
                   placeholder="Reference no. (optional)"
-                  className={`rounded-lg bg-ink-card border border-ink-line px-3 py-2.5 text-sm outline-none ${
+                  className={`rounded-lg bg-ink-card border border-ink-line px-3 py-2.5 text-sm text-text-hi placeholder:text-text-low outline-none ${
                     isGcash ? "focus:border-gcash" : "focus:border-maya"
                   }`}
                 />
@@ -374,7 +374,7 @@ export default function LogPage() {
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   placeholder="Note (optional)"
-                  className={`rounded-lg bg-ink-card border border-ink-line px-3 py-2.5 text-sm outline-none ${
+                  className={`rounded-lg bg-ink-card border border-ink-line px-3 py-2.5 text-sm text-text-hi placeholder:text-text-low outline-none ${
                     isGcash ? "focus:border-gcash" : "focus:border-maya"
                   }`}
                 />
@@ -458,12 +458,19 @@ export default function LogPage() {
 
             <div className="bg-ink-card border border-ink-line rounded-xl p-4 space-y-4">
               <div>
+                <label className="text-xs text-text-mid uppercase tracking-wide">Customer number</label>
+                <div className="mt-1 w-full rounded-lg bg-ink border border-ink-line px-3 py-2.5 text-sm font-mono tabular text-text-hi">
+                  {customerMobile || "—"}
+                </div>
+              </div>
+
+              <div>
                 <label className="text-xs text-text-mid uppercase tracking-wide">Reference number</label>
                 <input
                   value={reference}
                   onChange={(e) => setReference(e.target.value)}
                   placeholder="Verify against the app receipt (optional)"
-                  className={`mt-1 w-full rounded-lg bg-ink-bg border border-ink-line px-3 py-2.5 text-sm outline-none ${
+                  className={`mt-1 w-full rounded-lg bg-ink border border-ink-line px-3 py-2.5 text-sm text-text-hi placeholder:text-text-low outline-none ${
                     isGcash ? "focus:border-gcash" : "focus:border-maya"
                   }`}
                 />
@@ -533,7 +540,7 @@ function SummaryRow({
       <span className="text-sm text-text-mid">{label}</span>
       <span
         className={`text-sm ${mono ? "font-mono tabular" : ""} ${
-          highlight ? "font-semibold text-base" : "text-text-high"
+          highlight ? "font-semibold text-base" : "text-text-hi"
         }`}
       >
         {value}

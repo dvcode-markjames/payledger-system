@@ -5,7 +5,8 @@ import { createClient } from "@/lib/supabase/client";
 import { Transaction, Platform, TxType, TX_LABELS } from "@/lib/types";
 import { formatManilaTime } from "@/lib/manilaDate";
 import AppShell from "@/components/AppShell";
-import { Search, Download, Printer, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
+import NoteEditModal from "@/components/NoteEditModal";
+import { Search, Download, Printer, ArrowDownCircle, ArrowUpCircle, Pencil } from "lucide-react";
 
 export default function HistoryPage() {
   const supabase = createClient();
@@ -16,6 +17,7 @@ export default function HistoryPage() {
   const [type, setType] = useState<TxType | "all">("all");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -40,7 +42,7 @@ export default function HistoryPage() {
       if (to && new Date(t.created_at) > new Date(to + "T23:59:59")) return false;
       if (search) {
         const q = search.toLowerCase();
-        const hay = `${t.reference_no ?? ""} ${t.note ?? ""} ${t.amount}`.toLowerCase();
+        const hay = `${t.reference_no ?? ""} ${t.note ?? ""} ${t.customer_mobile ?? ""} ${t.amount}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
@@ -69,6 +71,7 @@ export default function HistoryPage() {
       "Commission netted in": t.commission_included ? "Yes" : "No",
       "Net total": t.net_total,
       "Balance after": t.balance_after,
+      "Customer number": t.customer_mobile ?? "",
       Reference: t.reference_no ?? "",
       Note: t.note ?? "",
     }));
@@ -81,6 +84,22 @@ export default function HistoryPage() {
   function handlePrint() {
     window.print();
   }
+
+  async function handleNoteSave(transactionId: string, note: string) {
+    const { data, error } = await supabase.rpc("update_transaction_note", {
+      p_transaction_id: transactionId,
+      p_note: note,
+    });
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    setTransactions((prev) =>
+      prev.map((t) => (t.id === transactionId ? (data as Transaction) : t))
+    );
+  }
+
+  const editingNoteTx = transactions.find((t) => t.id === editingNoteId) ?? null;
 
   return (
     <AppShell>
@@ -113,7 +132,7 @@ export default function HistoryPage() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search ref / note"
+              placeholder="Search ref / note / number"
               className="w-full pl-8 pr-2 py-2 rounded-lg bg-ink-card border border-ink-line text-sm outline-none focus:border-gcash"
             />
           </div>
@@ -169,8 +188,10 @@ export default function HistoryPage() {
                   <th className="px-4 py-3 text-right">Commission</th>
                   <th className="px-4 py-3 text-right">Net total</th>
                   <th className="px-4 py-3">Fee</th>
+                  <th className="px-4 py-3">Customer #</th>
                   <th className="px-4 py-3">Reference</th>
                   <th className="px-4 py-3">Note</th>
+                  <th className="px-4 py-3 print:hidden"></th>
                 </tr>
               </thead>
               <tbody>
@@ -199,13 +220,28 @@ export default function HistoryPage() {
                         {t.commission_included ? "Netted in" : "Separate"}
                       </span>
                     </td>
+                    <td className="px-4 py-3 font-mono tabular text-text-low">{t.customer_mobile ?? "—"}</td>
                     <td className="px-4 py-3 text-text-low">{t.reference_no ?? "—"}</td>
-                    <td className="px-4 py-3 text-text-low">{t.note ?? "—"}</td>
+                    <td className="px-4 py-3 text-text-low">
+                      {t.note ?? "—"}
+                      {t.note_edited_at && (
+                        <span className="ml-1.5 text-[10px] text-text-low/70">(edited)</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 print:hidden">
+                      <button
+                        onClick={() => setEditingNoteId(t.id)}
+                        title="Edit note"
+                        className="text-text-low hover:text-text-hi"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                    </td>
                   </tr>
                 ))}
                 {!loading && filtered.length === 0 && (
                   <tr>
-                    <td colSpan={9} className="px-4 py-10 text-center text-text-low">
+                    <td colSpan={11} className="px-4 py-10 text-center text-text-low">
                       No transactions match these filters.
                     </td>
                   </tr>
@@ -218,7 +254,7 @@ export default function HistoryPage() {
                   </td>
                   <td className="px-4 py-3 text-right font-mono tabular">₱{totals.amount.toFixed(2)}</td>
                   <td className="px-4 py-3 text-right font-mono tabular text-in">₱{totals.commission.toFixed(2)}</td>
-                  <td colSpan={4} />
+                  <td colSpan={5} />
                 </tr>
               </tfoot>
             </table>
@@ -265,12 +301,24 @@ export default function HistoryPage() {
                     <div className="font-mono tabular">₱{Number(t.net_total).toFixed(2)}</div>
                   </div>
                 </div>
-                {(t.reference_no || t.note) && (
-                  <div className="mt-2 pt-2 border-t border-dashed border-ink-line text-xs text-text-low">
-                    {t.reference_no && <span className="mr-3">Ref: {t.reference_no}</span>}
-                    {t.note && <span>{t.note}</span>}
+                {(t.customer_mobile || t.reference_no || t.note) && (
+                  <div className="mt-2 pt-2 border-t border-dashed border-ink-line text-xs text-text-low space-x-3">
+                    {t.customer_mobile && <span className="font-mono tabular">#: {t.customer_mobile}</span>}
+                    {t.reference_no && <span>Ref: {t.reference_no}</span>}
+                    {t.note && (
+                      <span>
+                        {t.note}
+                        {t.note_edited_at && <span className="text-text-low/70"> (edited)</span>}
+                      </span>
+                    )}
                   </div>
                 )}
+                <button
+                  onClick={() => setEditingNoteId(t.id)}
+                  className="mt-2 flex items-center gap-1 text-[11px] text-text-low hover:text-text-hi print:hidden"
+                >
+                  <Pencil size={11} /> {t.note ? "Edit note" : "Add note"}
+                </button>
               </div>
             ))}
             {!loading && filtered.length === 0 && (
@@ -279,6 +327,14 @@ export default function HistoryPage() {
           </div>
         </div>
       </div>
+
+      {editingNoteTx && (
+        <NoteEditModal
+          currentNote={editingNoteTx.note}
+          onClose={() => setEditingNoteId(null)}
+          onSave={(note) => handleNoteSave(editingNoteTx.id, note)}
+        />
+      )}
     </AppShell>
   );
 }

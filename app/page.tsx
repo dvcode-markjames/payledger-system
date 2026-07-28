@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { getManilaTodayRangeUTC } from "@/lib/manilaDate";
 import { Transaction } from "@/lib/types";
 import AppShell from "@/components/AppShell";
-import { ArrowDownCircle, ArrowUpCircle, Coins, RefreshCw, Wallet } from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, Coins, RefreshCw, Wallet, CalendarDays } from "lucide-react";
 import Link from "next/link";
 
 interface PlatformTotals {
@@ -17,17 +17,43 @@ interface PlatformTotals {
 
 const EMPTY: PlatformTotals = { cashIn: 0, cashOut: 0, commission: 0, count: 0 };
 
+// Converts a "YYYY-MM-DD" Manila calendar date into a reference Date whose
+// getManilaTodayRangeUTC() bounds land on that same Manila day.
+function manilaDateStringToReference(dateStr: string): Date {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d, 0, 0, 0, 0));
+}
+
+function todayManilaDateString(): string {
+  const { startISO } = getManilaTodayRangeUTC();
+  return isoToManilaDateInput(startISO);
+}
+
+function isoToManilaDateInput(iso: string): string {
+  // startISO already marks Manila midnight; format as YYYY-MM-DD in Manila tz.
+  const d = new Date(iso);
+  const manila = new Date(d.getTime() + 8 * 60 * 60 * 1000);
+  const y = manila.getUTCFullYear();
+  const m = String(manila.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(manila.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 export default function DashboardPage() {
   const supabase = createClient();
   const [loading, setLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState<string>(() => todayManilaDateString());
   const [gcashBal, setGcashBal] = useState<number>(0);
   const [mayaBal, setMayaBal] = useState<number>(0);
   const [gcash, setGcash] = useState<PlatformTotals>(EMPTY);
   const [maya, setMaya] = useState<PlatformTotals>(EMPTY);
 
+  const isToday = selectedDate === todayManilaDateString();
+
   const load = useCallback(async () => {
     setLoading(true);
-    const { startISO, endISO } = getManilaTodayRangeUTC();
+    const reference = manilaDateStringToReference(selectedDate);
+    const { startISO, endISO } = getManilaTodayRangeUTC(reference);
 
     const [{ data: balances }, { data: txs }] = await Promise.all([
       supabase.from("balances").select("*"),
@@ -38,9 +64,6 @@ export default function DashboardPage() {
         .lt("created_at", endISO)
         .order("created_at", { ascending: false }),
     ]);
-
-    setGcashBal(balances?.find((b) => b.platform === "gcash")?.amount ?? 0);
-    setMayaBal(balances?.find((b) => b.platform === "maya")?.amount ?? 0);
 
     const totals: Record<"gcash" | "maya", PlatformTotals> = {
       gcash: { ...EMPTY },
@@ -58,29 +81,103 @@ export default function DashboardPage() {
 
     setGcash(totals.gcash);
     setMaya(totals.maya);
+
+    if (isToday) {
+      // Live balances reflect right now.
+      setGcashBal(balances?.find((b) => b.platform === "gcash")?.amount ?? 0);
+      setMayaBal(balances?.find((b) => b.platform === "maya")?.amount ?? 0);
+    } else {
+      // For a past day, show the balance as it stood at end-of-day: the
+      // balance_after of the last completed transaction on or before that day.
+      const txsAsc = (txs as Transaction[] | null) ?? [];
+      const lastOfDay = (platform: "gcash" | "maya") =>
+        [...txsAsc].reverse().find((t) => t.platform === platform && t.balance_after !== null);
+
+      const gLast = lastOfDay("gcash");
+      const mLast = lastOfDay("maya");
+
+      const [gPrev, mPrev] = await Promise.all([
+        gLast
+          ? Promise.resolve(null)
+          : supabase
+              .from("transactions")
+              .select("balance_after")
+              .eq("platform", "gcash")
+              .lt("created_at", endISO)
+              .not("balance_after", "is", null)
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle(),
+        mLast
+          ? Promise.resolve(null)
+          : supabase
+              .from("transactions")
+              .select("balance_after")
+              .eq("platform", "maya")
+              .lt("created_at", endISO)
+              .not("balance_after", "is", null)
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle(),
+      ]);
+
+      setGcashBal(gLast ? Number(gLast.balance_after) : Number(gPrev?.data?.balance_after ?? 0));
+      setMayaBal(mLast ? Number(mLast.balance_after) : Number(mPrev?.data?.balance_after ?? 0));
+    }
+
     setLoading(false);
-  }, [supabase]);
+  }, [supabase, selectedDate, isToday]);
 
   useEffect(() => {
     load();
   }, [load]);
 
   const totalCommission = gcash.commission + maya.commission;
+  const selectedLabel = useMemo(() => {
+    const [y, m, d] = selectedDate.split("-").map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString("en-PH", {
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
+    });
+  }, [selectedDate]);
 
   return (
     <AppShell>
       <div className="max-w-3xl mx-auto px-4 py-6 md:py-8">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
           <div>
-            <h1 className="font-display font-bold text-2xl">Today's Tally</h1>
-            <p className="text-text-mid text-sm">Resets daily at midnight, Asia/Manila</p>
+            <h1 className="font-display font-bold text-2xl">{isToday ? "Today's Tally" : `${selectedLabel} Tally`}</h1>
+            <p className="text-text-mid text-sm">
+              {isToday ? "Resets daily at midnight, Asia/Manila" : "Viewing a past day (Asia/Manila)"}
+            </p>
           </div>
-          <button
-            onClick={load}
-            className="w-9 h-9 rounded-lg border border-ink-line flex items-center justify-center text-text-mid hover:text-text-hi"
-          >
-            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-          </button>
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <CalendarDays size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-text-low" />
+              <input
+                type="date"
+                value={selectedDate}
+                max={todayManilaDateString()}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="rounded-lg bg-ink-card border border-ink-line text-sm pl-8 pr-2 py-2 text-text-mid"
+              />
+            </div>
+            {!isToday && (
+              <button
+                onClick={() => setSelectedDate(todayManilaDateString())}
+                className="text-sm border border-ink-line rounded-lg px-3 py-2 text-text-mid hover:text-text-hi"
+              >
+                Today
+              </button>
+            )}
+            <button
+              onClick={load}
+              className="w-9 h-9 rounded-lg border border-ink-line flex items-center justify-center text-text-mid hover:text-text-hi shrink-0"
+            >
+              <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+            </button>
+          </div>
         </div>
 
         {/* Receipt-stub summary */}
@@ -103,7 +200,7 @@ export default function DashboardPage() {
           </div>
           <div className="px-5 py-4 border-t border-dashed border-ink-line flex items-center justify-between">
             <span className="text-sm text-text-mid flex items-center gap-2">
-              <Coins size={15} /> Total commission earned today
+              <Coins size={15} /> Total commission earned {isToday ? "today" : "that day"}
             </span>
             <span className="font-mono tabular font-semibold text-lg text-in">
               ₱{totalCommission.toFixed(2)}
