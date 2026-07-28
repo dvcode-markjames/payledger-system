@@ -80,8 +80,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
 export const TX_LABELS: Record<TxType, string> = {
   cash_in: "Cash In",
   cash_out: "Cash Out",
-  maya_cash_in: "Cash In (Maya-Maya)",
-  maya_cash_out: "Cash Out (Maya-Maya)",
+  maya_cash_in: "Cash In",
+  maya_cash_out: "Cash Out",
   load: "Load",
   bank_transfer: "Bank Transfer",
 };
