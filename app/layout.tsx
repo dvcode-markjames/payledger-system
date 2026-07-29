@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Rubik } from "next/font/google";
 import "./globals.css";
 import TourProvider from "@/components/Tour/TourProvider";
+import { ToastProvider } from "@/components/Toast";
 
 const display = Rubik({
   subsets: ["latin"],
@@ -47,7 +48,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             2. useTour() is available from any page or component in the
                app, e.g. the "Take Tour Again" button in Settings.
         */}
-        <TourProvider>{children}</TourProvider>
+        <ToastProvider>
+          <TourProvider>{children}</TourProvider>
+        </ToastProvider>
       </body>
     </html>
   );

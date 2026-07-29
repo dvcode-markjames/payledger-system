@@ -7,7 +7,8 @@ export type TxType =
   | "maya_cash_out"
   | "load"
   | "bank_transfer"
-  | "dito_load";
+  | "dito_load"
+  | "balance_adjustment";
 
 export const PLATFORM_LABELS: Record<Platform, string> = {
   gcash: "GCash",
@@ -65,6 +66,7 @@ export interface Transaction {
   commission: number;
   commission_included: boolean; // true if commission was netted into net_total instead of charged separately
   net_total: number; // what the customer actually receives / pays
+  balance_before: number | null;
   balance_after: number | null;
   reference_no: string | null;
   note: string | null;
@@ -130,4 +132,5 @@ export const TX_LABELS: Record<TxType, string> = {
   load: "Load",
   bank_transfer: "Bank Transfer",
   dito_load: "Load",
+  balance_adjustment: "Balance Adjustment",
 };

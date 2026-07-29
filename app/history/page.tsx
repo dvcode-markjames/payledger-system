@@ -6,10 +6,12 @@ import { Transaction, Platform, TxType, TX_LABELS, PLATFORM_LABELS, PLATFORM_STY
 import { formatManilaTime } from "@/lib/manilaDate";
 import AppShell from "@/components/AppShell";
 import NoteEditModal from "@/components/NoteEditModal";
+import { useToast } from "@/components/Toast";
 import { Search, Download, Printer, ArrowDownCircle, ArrowUpCircle, Pencil } from "lucide-react";
 
 export default function HistoryPage() {
   const supabase = createClient();
+  const { showToast } = useToast();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -70,6 +72,7 @@ export default function HistoryPage() {
       Commission: t.commission,
       "Commission netted in": t.commission_included ? "Yes" : "No",
       "Net total": t.net_total,
+      "Balance before": t.balance_before,
       "Balance after": t.balance_after,
       "Customer number": t.customer_mobile ?? "",
       Reference: t.reference_no ?? "",
@@ -91,12 +94,13 @@ export default function HistoryPage() {
       p_note: note,
     });
     if (error) {
-      alert(error.message);
+      showToast(error.message, "error");
       return;
     }
     setTransactions((prev) =>
       prev.map((t) => (t.id === transactionId ? (data as Transaction) : t))
     );
+    showToast("Note saved");
   }
 
   const editingNoteTx = transactions.find((t) => t.id === editingNoteId) ?? null;
@@ -208,7 +212,14 @@ export default function HistoryPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-text-mid">{TX_LABELS[t.type]}</td>
-                    <td className="px-4 py-3 text-right font-mono tabular">₱{Number(t.amount).toFixed(2)}</td>
+                    <td className="px-4 py-3 text-right font-mono tabular">
+                      {t.type === "balance_adjustment" && (
+                        <span className={Number(t.net_total) >= 0 ? "text-in" : "text-out"}>
+                          {Number(t.net_total) >= 0 ? "+" : "−"}
+                        </span>
+                      )}
+                      ₱{Number(t.amount).toFixed(2)}
+                    </td>
                     <td className="px-4 py-3 text-right font-mono tabular text-in">₱{Number(t.commission).toFixed(2)}</td>
                     <td className="px-4 py-3 text-right font-mono tabular">₱{Number(t.net_total).toFixed(2)}</td>
                     <td className="px-4 py-3 whitespace-nowrap">
@@ -273,7 +284,7 @@ export default function HistoryPage() {
                   <span className="text-xs text-text-low font-mono tabular">{formatManilaTime(t.created_at)}</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-sm mb-2">
-                  {t.type.includes("in") ? (
+                  {(t.type === "balance_adjustment" ? Number(t.net_total) >= 0 : t.type.includes("in")) ? (
                     <ArrowDownCircle size={14} className="text-in" />
                   ) : (
                     <ArrowUpCircle size={14} className="text-out" />
@@ -292,7 +303,14 @@ export default function HistoryPage() {
                 <div className="grid grid-cols-3 gap-2 text-xs">
                   <div>
                     <div className="text-text-low">Amount</div>
-                    <div className="font-mono tabular">₱{Number(t.amount).toFixed(2)}</div>
+                    <div className="font-mono tabular">
+                      {t.type === "balance_adjustment" && (
+                        <span className={Number(t.net_total) >= 0 ? "text-in" : "text-out"}>
+                          {Number(t.net_total) >= 0 ? "+" : "−"}
+                        </span>
+                      )}
+                      ₱{Number(t.amount).toFixed(2)}
+                    </div>
                   </div>
                   <div>
                     <div className="text-text-low">Commission</div>

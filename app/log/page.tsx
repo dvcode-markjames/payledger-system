@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { fetchSettings } from "@/lib/settings";
 import { useRole } from "@/lib/useRole";
+import { useToast } from "@/components/Toast";
 import { calcTieredCommission, calcLoadCommission, calcBankTransferCommission } from "@/lib/commission";
 import {
   AppSettings,
@@ -35,6 +36,7 @@ function money(n: number) {
 export default function LogPage() {
   const supabase = createClient();
   const { isOwner } = useRole();
+  const { showToast } = useToast();
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
 
   const [step, setStep] = useState<Step>("form");
@@ -124,15 +126,19 @@ export default function LogPage() {
 
   const formValid = numericAmount > 0 && mobileValid;
 
-  async function handleBalanceSave(platformToEdit: Platform, value: number) {
+  async function handleBalanceSave(platformToEdit: Platform, value: number, reason: string) {
     setErrorMsg(null);
-    const { error } = await supabase
-      .from("balances")
-      .upsert({ platform: platformToEdit, amount: value, updated_at: new Date().toISOString() });
+    const { error } = await supabase.rpc("adjust_balance", {
+      p_platform: platformToEdit,
+      p_new_amount: value,
+      p_reason: reason,
+    });
     if (error) {
       setErrorMsg(`Couldn't save balance: ${error.message}`);
+      showToast("Couldn't save balance", "error");
       return;
     }
+    showToast(`${PLATFORM_LABELS[platformToEdit]} balance updated`);
     await load();
   }
 
@@ -192,6 +198,8 @@ export default function LogPage() {
       setSaving(false);
       return;
     }
+
+    showToast("Transaction saved");
 
     // Reset everything for the next transaction
     setAmount("");
@@ -511,8 +519,8 @@ export default function LogPage() {
           label={PLATFORM_LABELS[editingBalance]}
           currentBalance={editingBalance === "gcash" ? gcashBal : editingBalance === "maya" ? mayaBal : ditoBal}
           onClose={() => setEditingBalance(null)}
-          onSave={async (v) => {
-            await handleBalanceSave(editingBalance, v);
+          onSave={async (v, reason) => {
+            await handleBalanceSave(editingBalance, v, reason);
           }}
         />
       )}

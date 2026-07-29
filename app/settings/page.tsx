@@ -7,11 +7,13 @@ import { AppSettings, DEFAULT_SETTINGS } from "@/lib/types";
 import AppShell from "@/components/AppShell";
 import TierEditor from "@/components/TierEditor";
 import { useTour } from "@/components/Tour/useTour";
+import { useToast } from "@/components/Toast";
 import { Check, PlayCircle } from "lucide-react";
 
 export default function SettingsPage() {
   const supabase = createClient();
   const { startTour } = useTour();
+  const { showToast } = useToast();
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -41,8 +43,10 @@ export default function SettingsPage() {
       ]);
       setSaved(true);
       setTimeout(() => setSaved(false), 1800);
+      showToast("Settings saved");
     } catch (err: any) {
       setErrorMsg(`Couldn't save settings: ${err?.message ?? "unknown error"}`);
+      showToast("Couldn't save settings", "error");
     } finally {
       setSaving(false);
     }

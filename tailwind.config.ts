@@ -66,11 +66,23 @@ const config: Config = {
           "0%": { opacity: "0" },
           "100%": { opacity: "1" },
         },
+        /* Toast notification: pops up into view... */
+        "toast-in": {
+          "0%": { opacity: "0", transform: "scale(0.95) translateY(6px)" },
+          "100%": { opacity: "1", transform: "scale(1) translateY(0)" },
+        },
+        /* ...and fades back out when it's done. */
+        "toast-out": {
+          "0%": { opacity: "1", transform: "scale(1) translateY(0)" },
+          "100%": { opacity: "0", transform: "scale(0.95) translateY(6px)" },
+        },
       },
       animation: {
         "tour-pulse": "tour-pulse 2s ease-in-out infinite",
         "tour-pop": "tour-pop 0.18s ease-out",
         "tour-fade": "tour-fade 0.2s ease-out",
+        "toast-in": "toast-in 0.2s ease-out",
+        "toast-out": "toast-out 0.18s ease-in forwards",
       },
     },
   },
