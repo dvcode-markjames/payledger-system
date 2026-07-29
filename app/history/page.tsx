@@ -112,6 +112,7 @@ export default function HistoryPage() {
           <div className="flex gap-2">
             <button
               onClick={handleExport}
+              data-tour="history-export"
               className="flex items-center gap-1.5 text-sm border border-ink-line rounded-lg px-3 py-2 text-text-mid hover:text-text-hi"
             >
               <Download size={14} /> Export
@@ -126,7 +127,7 @@ export default function HistoryPage() {
         </div>
 
         {/* Filters */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
+        <div data-tour="history-filters" className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
           <div className="col-span-2 md:col-span-1 relative">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-low" />
             <input
@@ -209,9 +210,9 @@ export default function HistoryPage() {
                     <td className="px-4 py-3 text-right font-mono tabular">₱{Number(t.amount).toFixed(2)}</td>
                     <td className="px-4 py-3 text-right font-mono tabular text-in">₱{Number(t.commission).toFixed(2)}</td>
                     <td className="px-4 py-3 text-right font-mono tabular">₱{Number(t.net_total).toFixed(2)}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 whitespace-nowrap">
                       <span
-                        className={`text-xs px-2 py-1 rounded-md border ${
+                        className={`inline-block text-xs px-2 py-1 rounded-md border whitespace-nowrap ${
                           t.commission_included
                             ? "border-gcash/40 text-gcash bg-gcash/10"
                             : "border-ink-line text-text-low"

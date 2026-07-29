@@ -221,7 +221,7 @@ export default function LogPage() {
             <h1 className="font-display font-bold text-2xl mb-1">Log a transaction</h1>
             <p className="text-text-mid text-sm mb-6">Commission is calculated automatically from your settings.</p>
 
-            <div className="grid grid-cols-2 gap-2 mb-4">
+            <div data-tour="log-platform" className="grid grid-cols-2 gap-2 mb-4">
               {(["gcash", "maya"] as Platform[]).map((p) => (
                 <button
                   key={p}
@@ -308,7 +308,7 @@ export default function LogPage() {
                 )}
               </div>
 
-              <div>
+              <div data-tour="log-amount">
                 <label className="text-xs text-text-mid uppercase tracking-wide">Amount (₱)</label>
                 <input
                   inputMode="decimal"

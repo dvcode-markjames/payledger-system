@@ -181,7 +181,10 @@ export default function DashboardPage() {
         </div>
 
         {/* Receipt-stub summary */}
-        <div className="bg-ink-card border border-ink-line rounded-xl receipt-edge overflow-hidden mb-6">
+        <div
+          data-tour="dashboard-summary"
+          className="bg-ink-card border border-ink-line rounded-xl receipt-edge overflow-hidden mb-6"
+        >
           <div className="grid grid-cols-2 divide-x divide-ink-line">
             <PlatformStub
               name="GCash"
@@ -210,6 +213,7 @@ export default function DashboardPage() {
 
         <Link
           href="/log"
+          data-tour="add-transaction"
           className="block w-full text-center rounded-xl bg-gcash text-white font-semibold py-3.5 mb-3"
         >
           + Add transaction

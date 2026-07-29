@@ -39,6 +39,34 @@ const config: Config = {
       borderRadius: {
         xl: "1rem",
       },
+      keyframes: {
+        /* Soft glowing pulse used on the Tour's highlighted element border */
+        "tour-pulse": {
+          "0%, 100%": {
+            boxShadow:
+              "0 0 0 4px rgba(20,121,255,0.25), 0 0 18px 4px rgba(20,121,255,0.35)",
+          },
+          "50%": {
+            boxShadow:
+              "0 0 0 4px rgba(20,121,255,0.35), 0 0 28px 8px rgba(20,121,255,0.55)",
+          },
+        },
+        /* Entrance animation for the Tour popover card */
+        "tour-pop": {
+          "0%": { opacity: "0", transform: "scale(0.96) translateY(4px)" },
+          "100%": { opacity: "1", transform: "scale(1) translateY(0)" },
+        },
+        /* Entrance animation for the dimmed backdrop panels */
+        "tour-fade": {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
+      },
+      animation: {
+        "tour-pulse": "tour-pulse 2s ease-in-out infinite",
+        "tour-pop": "tour-pop 0.18s ease-out",
+        "tour-fade": "tour-fade 0.2s ease-out",
+      },
     },
   },
   plugins: [],

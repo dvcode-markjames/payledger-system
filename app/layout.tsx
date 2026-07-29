@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Rubik } from "next/font/google";
 import "./globals.css";
+import TourProvider from "@/components/Tour/TourProvider";
 
 const display = Rubik({
   subsets: ["latin"],
@@ -38,7 +39,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body
         className={`${display.variable} ${body.variable} ${mono.variable} font-body bg-ink text-text-hi min-h-screen`}
       >
-        {children}
+        {/*
+          TourProvider lives here, above every page, so:
+            1. Its state (which step is active) survives client-side route
+               changes as the tour walks the user across Dashboard → Log →
+               History → Settings.
+            2. useTour() is available from any page or component in the
+               app, e.g. the "Take Tour Again" button in Settings.
+        */}
+        <TourProvider>{children}</TourProvider>
       </body>
     </html>
   );
