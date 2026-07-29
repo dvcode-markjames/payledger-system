@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Transaction, Platform, TxType, TX_LABELS } from "@/lib/types";
+import { Transaction, Platform, TxType, TX_LABELS, PLATFORM_LABELS, PLATFORM_STYLES } from "@/lib/types";
 import { formatManilaTime } from "@/lib/manilaDate";
 import AppShell from "@/components/AppShell";
 import NoteEditModal from "@/components/NoteEditModal";
@@ -145,6 +145,7 @@ export default function HistoryPage() {
             <option value="all">All platforms</option>
             <option value="gcash">GCash</option>
             <option value="maya">Maya</option>
+            <option value="dito">DITO</option>
           </select>
           <select
             value={type}
@@ -202,7 +203,7 @@ export default function HistoryPage() {
                       {formatManilaTime(t.created_at)}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={t.platform === "gcash" ? "text-gcash" : "text-maya"}>
+                      <span className={PLATFORM_STYLES[t.platform].text}>
                         {t.platform.toUpperCase()}
                       </span>
                     </td>
@@ -266,7 +267,7 @@ export default function HistoryPage() {
             {filtered.map((t) => (
               <div key={t.id} className="bg-ink-card border border-ink-line rounded-xl p-3.5">
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className={`font-display font-semibold text-sm ${t.platform === "gcash" ? "text-gcash" : "text-maya"}`}>
+                  <span className={`font-display font-semibold text-sm ${PLATFORM_STYLES[t.platform].text}`}>
                     {t.platform.toUpperCase()}
                   </span>
                   <span className="text-xs text-text-low font-mono tabular">{formatManilaTime(t.created_at)}</span>

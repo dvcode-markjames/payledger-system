@@ -45,8 +45,10 @@ export default function DashboardPage() {
   const [selectedDate, setSelectedDate] = useState<string>(() => todayManilaDateString());
   const [gcashBal, setGcashBal] = useState<number>(0);
   const [mayaBal, setMayaBal] = useState<number>(0);
+  const [ditoBal, setDitoBal] = useState<number>(0);
   const [gcash, setGcash] = useState<PlatformTotals>(EMPTY);
   const [maya, setMaya] = useState<PlatformTotals>(EMPTY);
+  const [dito, setDito] = useState<PlatformTotals>(EMPTY);
 
   const isToday = selectedDate === todayManilaDateString();
 
@@ -65,9 +67,10 @@ export default function DashboardPage() {
         .order("created_at", { ascending: false }),
     ]);
 
-    const totals: Record<"gcash" | "maya", PlatformTotals> = {
+    const totals: Record<"gcash" | "maya" | "dito", PlatformTotals> = {
       gcash: { ...EMPTY },
       maya: { ...EMPTY },
+      dito: { ...EMPTY },
     };
 
     (txs as Transaction[] | null)?.forEach((t) => {
@@ -76,27 +79,30 @@ export default function DashboardPage() {
       bucket.count += 1;
       if (t.type === "cash_in" || t.type === "maya_cash_in") bucket.cashIn += Number(t.amount);
       else if (t.type === "cash_out" || t.type === "maya_cash_out") bucket.cashOut += Number(t.amount);
-      else if (t.type === "load" || t.type === "bank_transfer") bucket.cashOut += Number(t.amount);
+      else if (t.type === "load" || t.type === "bank_transfer" || t.type === "dito_load") bucket.cashOut += Number(t.amount);
     });
 
     setGcash(totals.gcash);
     setMaya(totals.maya);
+    setDito(totals.dito);
 
     if (isToday) {
       // Live balances reflect right now.
       setGcashBal(balances?.find((b) => b.platform === "gcash")?.amount ?? 0);
       setMayaBal(balances?.find((b) => b.platform === "maya")?.amount ?? 0);
+      setDitoBal(balances?.find((b) => b.platform === "dito")?.amount ?? 0);
     } else {
       // For a past day, show the balance as it stood at end-of-day: the
       // balance_after of the last completed transaction on or before that day.
       const txsAsc = (txs as Transaction[] | null) ?? [];
-      const lastOfDay = (platform: "gcash" | "maya") =>
+      const lastOfDay = (platform: "gcash" | "maya" | "dito") =>
         [...txsAsc].reverse().find((t) => t.platform === platform && t.balance_after !== null);
 
       const gLast = lastOfDay("gcash");
       const mLast = lastOfDay("maya");
+      const dLast = lastOfDay("dito");
 
-      const [gPrev, mPrev] = await Promise.all([
+      const [gPrev, mPrev, dPrev] = await Promise.all([
         gLast
           ? Promise.resolve(null)
           : supabase
@@ -119,10 +125,22 @@ export default function DashboardPage() {
               .order("created_at", { ascending: false })
               .limit(1)
               .maybeSingle(),
+        dLast
+          ? Promise.resolve(null)
+          : supabase
+              .from("transactions")
+              .select("balance_after")
+              .eq("platform", "dito")
+              .lt("created_at", endISO)
+              .not("balance_after", "is", null)
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle(),
       ]);
 
       setGcashBal(gLast ? Number(gLast.balance_after) : Number(gPrev?.data?.balance_after ?? 0));
       setMayaBal(mLast ? Number(mLast.balance_after) : Number(mPrev?.data?.balance_after ?? 0));
+      setDitoBal(dLast ? Number(dLast.balance_after) : Number(dPrev?.data?.balance_after ?? 0));
     }
 
     setLoading(false);
@@ -132,7 +150,7 @@ export default function DashboardPage() {
     load();
   }, [load]);
 
-  const totalCommission = gcash.commission + maya.commission;
+  const totalCommission = gcash.commission + maya.commission + dito.commission;
   const selectedLabel = useMemo(() => {
     const [y, m, d] = selectedDate.split("-").map(Number);
     return new Date(y, m - 1, d).toLocaleDateString("en-PH", {
@@ -185,7 +203,7 @@ export default function DashboardPage() {
           data-tour="dashboard-summary"
           className="bg-ink-card border border-ink-line rounded-xl receipt-edge overflow-hidden mb-6"
         >
-          <div className="grid grid-cols-2 divide-x divide-ink-line">
+          <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-ink-line">
             <PlatformStub
               name="GCash"
               color="text-gcash"
@@ -199,6 +217,13 @@ export default function DashboardPage() {
               bg="bg-maya/10"
               balance={mayaBal}
               totals={maya}
+            />
+            <PlatformStub
+              name="DITO"
+              color="text-dito"
+              bg="bg-dito/10"
+              balance={ditoBal}
+              totals={dito}
             />
           </div>
           <div className="px-5 py-4 border-t border-dashed border-ink-line flex items-center justify-between">

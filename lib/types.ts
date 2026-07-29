@@ -1,4 +1,4 @@
-export type Platform = "gcash" | "maya";
+export type Platform = "gcash" | "maya" | "dito";
 
 export type TxType =
   | "cash_in"
@@ -6,7 +6,47 @@ export type TxType =
   | "maya_cash_in"
   | "maya_cash_out"
   | "load"
-  | "bank_transfer";
+  | "bank_transfer"
+  | "dito_load";
+
+export const PLATFORM_LABELS: Record<Platform, string> = {
+  gcash: "GCash",
+  maya: "Maya",
+  dito: "DITO",
+};
+
+// Tailwind class lookups per platform. Kept as literal strings (not built
+// with template interpolation) so Tailwind's content scanner can actually
+// find and generate them — see the `content` globs in tailwind.config.ts.
+export const PLATFORM_STYLES: Record<
+  Platform,
+  { text: string; border: string; bg10: string; bg15: string; solidBg: string; focusBorder: string }
+> = {
+  gcash: {
+    text: "text-gcash",
+    border: "border-gcash",
+    bg10: "bg-gcash/10",
+    bg15: "bg-gcash/15",
+    solidBg: "bg-gcash",
+    focusBorder: "focus:border-gcash",
+  },
+  maya: {
+    text: "text-maya",
+    border: "border-maya",
+    bg10: "bg-maya/10",
+    bg15: "bg-maya/15",
+    solidBg: "bg-maya",
+    focusBorder: "focus:border-maya",
+  },
+  dito: {
+    text: "text-dito",
+    border: "border-dito",
+    bg10: "bg-dito/10",
+    bg15: "bg-dito/15",
+    solidBg: "bg-dito",
+    focusBorder: "focus:border-dito",
+  },
+};
 
 export interface Tier {
   min: number;
@@ -40,13 +80,14 @@ export interface Transaction {
 export const APP_DEEP_LINKS: Record<Platform, { app: string; fallback: string; label: string }> = {
   gcash: { app: "gcash://", fallback: "https://www.gcash.com/", label: "Open GCash" },
   maya: { app: "maya://", fallback: "https://www.maya.ph/", label: "Open Maya" },
+  dito: { app: "dito://", fallback: "https://dito.ph/", label: "Open DITO" },
 };
 
 // UNOFFICIAL, reverse-engineered screen deep-link paths, appended after the
 // app scheme (e.g. "gcash://" + "send"). Not documented by GCash/Maya, not
 // verified against current app builds, and may break or need updating after
 // an app update — treat as a best-effort guess, not a supported API.
-export const DEEP_LINK_PATHS: Partial<Record<TxType, { gcash?: string; maya?: string }>> = {
+export const DEEP_LINK_PATHS: Partial<Record<TxType, { gcash?: string; maya?: string; dito?: string }>> = {
   // Guessed "send money" screen path for a bank transfer.
   bank_transfer: { gcash: "send", maya: "send" },
 };
@@ -58,6 +99,8 @@ export interface AppSettings {
   maya_banktransfer_fixed_fee: number;
   maya_load_tiers: Tier[];
   maya_banktransfer_tiers: Tier[];
+  dito_load_fixed_fee: number;
+  dito_load_tiers: Tier[];
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -75,6 +118,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   maya_banktransfer_fixed_fee: 10,
   maya_load_tiers: [{ min: 1, max: 1000, fee: 5 }],
   maya_banktransfer_tiers: [{ min: 1, max: 1000, fee: 0 }],
+  dito_load_fixed_fee: 0,
+  dito_load_tiers: [{ min: 1, max: 1000, fee: 5 }],
 };
 
 export const TX_LABELS: Record<TxType, string> = {
@@ -84,4 +129,5 @@ export const TX_LABELS: Record<TxType, string> = {
   maya_cash_out: "Cash Out (Maya-Maya)",
   load: "Load",
   bank_transfer: "Bank Transfer",
+  dito_load: "Load",
 };

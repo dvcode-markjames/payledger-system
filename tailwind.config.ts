@@ -4,6 +4,7 @@ const config: Config = {
   content: [
     "./app/**/*.{ts,tsx}",
     "./components/**/*.{ts,tsx}",
+    "./lib/**/*.{ts,tsx}",
   ],
   theme: {
     extend: {
@@ -27,6 +28,10 @@ const config: Config = {
         maya: {
           DEFAULT: "#00D084",
           soft: "#0E3A2C",
+        },
+        dito: {
+          DEFAULT: "#FF6A00",
+          soft: "#4A2A10",
         },
         in: "#3DDC97",
         out: "#FF6B57",

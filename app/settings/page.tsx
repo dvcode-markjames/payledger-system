@@ -36,6 +36,8 @@ export default function SettingsPage() {
         saveSetting(supabase, "maya_banktransfer_fixed_fee", settings.maya_banktransfer_fixed_fee),
         saveSetting(supabase, "maya_load_tiers", settings.maya_load_tiers),
         saveSetting(supabase, "maya_banktransfer_tiers", settings.maya_banktransfer_tiers),
+        saveSetting(supabase, "dito_load_fixed_fee", settings.dito_load_fixed_fee),
+        saveSetting(supabase, "dito_load_tiers", settings.dito_load_tiers),
       ]);
       setSaved(true);
       setTimeout(() => setSaved(false), 1800);
@@ -79,7 +81,7 @@ export default function SettingsPage() {
           </div>
         )}
 
-        <div className="grid md:grid-cols-2 gap-4 items-start">
+        <div className="grid md:grid-cols-3 gap-4 items-start">
           <section data-tour="settings-tiers" className="bg-ink-card border border-ink-line rounded-xl p-4">
             <h2 className="font-display font-semibold text-gcash mb-3">GCash — Cash In / Cash Out</h2>
             <TierEditor
@@ -143,6 +145,26 @@ export default function SettingsPage() {
               </div>
             </section>
           </div>
+
+          <section className="bg-ink-card border border-ink-line rounded-xl p-4 space-y-2">
+            <h2 className="font-display font-semibold text-dito mb-1">DITO — Load</h2>
+            <div>
+              <label className="text-[11px] text-text-low">DITO's fixed fee per transaction (₱)</label>
+              <input
+                type="number"
+                value={settings.dito_load_fixed_fee}
+                onChange={(e) =>
+                  setSettings((s) => ({ ...s, dito_load_fixed_fee: parseFloat(e.target.value) || 0 }))
+                }
+                className="mt-1 w-full rounded-lg bg-ink border border-ink-line px-3 py-2.5 font-mono tabular"
+              />
+            </div>
+            <label className="text-[11px] text-text-low mb-1.5 block">Our added commission — Load</label>
+            <TierEditor
+              tiers={settings.dito_load_tiers}
+              onChange={(dito_load_tiers) => setSettings((s) => ({ ...s, dito_load_tiers }))}
+            />
+          </section>
         </div>
 
         <button

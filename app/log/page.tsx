@@ -5,13 +5,24 @@ import { createClient } from "@/lib/supabase/client";
 import { fetchSettings } from "@/lib/settings";
 import { useRole } from "@/lib/useRole";
 import { calcTieredCommission, calcLoadCommission, calcBankTransferCommission } from "@/lib/commission";
-import { AppSettings, DEFAULT_SETTINGS, Platform, TxType, TX_LABELS, APP_DEEP_LINKS, DEEP_LINK_PATHS } from "@/lib/types";
+import {
+  AppSettings,
+  DEFAULT_SETTINGS,
+  Platform,
+  TxType,
+  TX_LABELS,
+  APP_DEEP_LINKS,
+  DEEP_LINK_PATHS,
+  PLATFORM_LABELS,
+  PLATFORM_STYLES,
+} from "@/lib/types";
 import AppShell from "@/components/AppShell";
 import BalanceEditModal from "@/components/BalanceEditModal";
 import { Pencil, Check, Lock, ArrowLeft, ExternalLink } from "lucide-react";
 
 const GCASH_TYPES: TxType[] = ["cash_in", "cash_out"];
 const MAYA_TYPES: TxType[] = ["maya_cash_in", "maya_cash_out", "load", "bank_transfer"];
+const DITO_TYPES: TxType[] = ["dito_load"];
 
 type Step = "form" | "summary" | "verify";
 
@@ -38,6 +49,7 @@ export default function LogPage() {
 
   const [gcashBal, setGcashBal] = useState(0);
   const [mayaBal, setMayaBal] = useState(0);
+  const [ditoBal, setDitoBal] = useState(0);
   const [editingBalance, setEditingBalance] = useState<Platform | null>(null);
 
   const [openedApp, setOpenedApp] = useState(false);
@@ -55,6 +67,7 @@ export default function LogPage() {
     setSettings(s);
     setGcashBal(balances?.find((b) => b.platform === "gcash")?.amount ?? 0);
     setMayaBal(balances?.find((b) => b.platform === "maya")?.amount ?? 0);
+    setDitoBal(balances?.find((b) => b.platform === "dito")?.amount ?? 0);
   }, [supabase]);
 
   useEffect(() => {
@@ -62,7 +75,7 @@ export default function LogPage() {
   }, [load]);
 
   useEffect(() => {
-    setType(platform === "gcash" ? "cash_in" : "maya_cash_in");
+    setType(platform === "gcash" ? "cash_in" : platform === "maya" ? "maya_cash_in" : "dito_load");
   }, [platform]);
 
   useEffect(() => {
@@ -90,18 +103,23 @@ export default function LogPage() {
         numericAmount
       );
     }
+    if (type === "dito_load") {
+      return calcLoadCommission(settings.dito_load_fixed_fee, settings.dito_load_tiers, numericAmount);
+    }
     return 0;
   }, [numericAmount, type, settings]);
 
-  const isMoneyOut = type === "cash_in" || type === "maya_cash_in" || type === "load" || type === "bank_transfer";
+  const isMoneyOut =
+    type === "cash_in" || type === "maya_cash_in" || type === "load" || type === "bank_transfer" || type === "dito_load";
   const netTotal = !commissionIncluded
     ? numericAmount
     : isMoneyOut
     ? numericAmount + commission
     : numericAmount - commission;
 
-  const currentBalance = platform === "gcash" ? gcashBal : mayaBal;
-  const isGcash = platform === "gcash";
+  const currentBalance = platform === "gcash" ? gcashBal : platform === "maya" ? mayaBal : ditoBal;
+  const style = PLATFORM_STYLES[platform];
+  const platformLabel = PLATFORM_LABELS[platform];
   const deepLink = APP_DEEP_LINKS[platform];
 
   const formValid = numericAmount > 0 && mobileValid;
@@ -143,11 +161,17 @@ export default function LogPage() {
     setSaving(true);
     setErrorMsg(null);
 
-    const mayaFee =
+    // Provider-side fixed fee taken from our own float on top of the
+    // transaction amount. The RPC parameter is still named p_maya_fee for
+    // backward compatibility, but it's a generic "float fee" regardless of
+    // which provider (Maya, DITO) is charging it.
+    const providerFee =
       type === "load"
         ? settings.maya_load_fixed_fee
         : type === "bank_transfer"
         ? settings.maya_banktransfer_fixed_fee
+        : type === "dito_load"
+        ? settings.dito_load_fixed_fee
         : 0;
 
     const { error } = await supabase.rpc("log_transaction", {
@@ -158,7 +182,7 @@ export default function LogPage() {
       p_commission_included: commissionIncluded,
       p_reference_no: reference || null,
       p_note: note || null,
-      p_maya_fee: mayaFee,
+      p_maya_fee: providerFee,
       p_customer_mobile: customerMobile.trim(),
       p_status: "completed",
     });
@@ -184,7 +208,7 @@ export default function LogPage() {
     setSaving(false);
   }
 
-  const types = platform === "gcash" ? GCASH_TYPES : MAYA_TYPES;
+  const types = platform === "gcash" ? GCASH_TYPES : platform === "maya" ? MAYA_TYPES : DITO_TYPES;
 
   return (
     <AppShell>
@@ -195,11 +219,7 @@ export default function LogPage() {
             <div key={s} className="flex items-center gap-2">
               <div
                 className={`w-6 h-6 rounded-full flex items-center justify-center font-semibold ${
-                  step === s
-                    ? isGcash
-                      ? "bg-gcash text-white"
-                      : "bg-maya text-white"
-                    : "bg-ink-card border border-ink-line text-text-low"
+                  step === s ? `${style.solidBg} text-white` : "bg-ink-card border border-ink-line text-text-low"
                 }`}
               >
                 {i + 1}
@@ -221,20 +241,18 @@ export default function LogPage() {
             <h1 className="font-display font-bold text-2xl mb-1">Log a transaction</h1>
             <p className="text-text-mid text-sm mb-6">Commission is calculated automatically from your settings.</p>
 
-            <div data-tour="log-platform" className="grid grid-cols-2 gap-2 mb-4">
-              {(["gcash", "maya"] as Platform[]).map((p) => (
+            <div data-tour="log-platform" className="grid grid-cols-3 gap-2 mb-4">
+              {(["gcash", "maya", "dito"] as Platform[]).map((p) => (
                 <button
                   key={p}
                   onClick={() => setPlatform(p)}
-                  className={`py-3 rounded-xl border font-display font-semibold capitalize transition-colors ${
+                  className={`py-3 rounded-xl border font-display font-semibold transition-colors ${
                     platform === p
-                      ? p === "gcash"
-                        ? "bg-gcash/15 border-gcash text-gcash"
-                        : "bg-maya/15 border-maya text-maya"
+                      ? `${PLATFORM_STYLES[p].bg15} ${PLATFORM_STYLES[p].border} ${PLATFORM_STYLES[p].text}`
                       : "border-ink-line text-text-mid"
                   }`}
                 >
-                  {p}
+                  {PLATFORM_LABELS[p]}
                 </button>
               ))}
             </div>
@@ -267,7 +285,7 @@ export default function LogPage() {
             >
               <div>
                 <label className="text-xs text-text-mid uppercase tracking-wide">Transaction type</label>
-                <div className="grid grid-cols-2 gap-2 mt-1.5">
+                <div className={`grid gap-2 mt-1.5 ${types.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
                   {types.map((t) => (
                     <button
                       type="button"
@@ -275,9 +293,7 @@ export default function LogPage() {
                       onClick={() => setType(t)}
                       className={`py-2.5 rounded-lg border text-sm font-medium ${
                         type === t
-                          ? isGcash
-                            ? "border-gcash text-gcash bg-gcash/10"
-                            : "border-maya text-maya bg-maya/10"
+                          ? `${style.border} ${style.text} ${style.bg10}`
                           : "border-ink-line text-text-mid"
                       }`}
                     >
@@ -296,11 +312,7 @@ export default function LogPage() {
                   onChange={(e) => setCustomerMobile(e.target.value.replace(/[^\d]/g, "").slice(0, 11))}
                   placeholder="09XXXXXXXXX"
                   className={`mt-1 w-full rounded-lg bg-ink-card border px-3 py-3 font-mono tabular text-text-hi placeholder:text-text-low outline-none ${
-                    customerMobile && !mobileValid
-                      ? "border-red-500/60"
-                      : isGcash
-                      ? "border-ink-line focus:border-gcash"
-                      : "border-ink-line focus:border-maya"
+                    customerMobile && !mobileValid ? "border-red-500/60" : `border-ink-line ${style.focusBorder}`
                   }`}
                 />
                 {customerMobile && !mobileValid && (
@@ -316,9 +328,7 @@ export default function LogPage() {
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="0.00"
-                  className={`mt-1 w-full rounded-lg bg-ink-card border border-ink-line px-3 py-3 font-mono tabular text-xl text-text-hi placeholder:text-text-low outline-none ${
-                    isGcash ? "focus:border-gcash" : "focus:border-maya"
-                  }`}
+                  className={`mt-1 w-full rounded-lg bg-ink-card border border-ink-line px-3 py-3 font-mono tabular text-xl text-text-hi placeholder:text-text-low outline-none ${style.focusBorder}`}
                 />
               </div>
 
@@ -337,9 +347,7 @@ export default function LogPage() {
                     onClick={() => setCommissionIncluded((v) => !v)}
                     className={`w-full flex items-center justify-between rounded-lg border px-3 py-2.5 text-sm transition-colors ${
                       commissionIncluded
-                        ? isGcash
-                          ? "border-gcash bg-gcash/10 text-gcash"
-                          : "border-maya bg-maya/10 text-maya"
+                        ? `${style.border} ${style.bg10} ${style.text}`
                         : "border-ink-line text-text-mid"
                     }`}
                   >
@@ -348,7 +356,7 @@ export default function LogPage() {
                     </span>
                     <span
                       className={`relative w-9 h-5 rounded-full transition-colors shrink-0 ml-3 ${
-                        commissionIncluded ? (isGcash ? "bg-gcash" : "bg-maya") : "bg-ink-line"
+                        commissionIncluded ? style.solidBg : "bg-ink-line"
                       }`}
                     >
                       <span
@@ -366,26 +374,20 @@ export default function LogPage() {
                   value={reference}
                   onChange={(e) => setReference(e.target.value)}
                   placeholder="Reference no. (optional)"
-                  className={`rounded-lg bg-ink-card border border-ink-line px-3 py-2.5 text-sm text-text-hi placeholder:text-text-low outline-none ${
-                    isGcash ? "focus:border-gcash" : "focus:border-maya"
-                  }`}
+                  className={`rounded-lg bg-ink-card border border-ink-line px-3 py-2.5 text-sm text-text-hi placeholder:text-text-low outline-none ${style.focusBorder}`}
                 />
                 <input
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   placeholder="Note (optional)"
-                  className={`rounded-lg bg-ink-card border border-ink-line px-3 py-2.5 text-sm text-text-hi placeholder:text-text-low outline-none ${
-                    isGcash ? "focus:border-gcash" : "focus:border-maya"
-                  }`}
+                  className={`rounded-lg bg-ink-card border border-ink-line px-3 py-2.5 text-sm text-text-hi placeholder:text-text-low outline-none ${style.focusBorder}`}
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={!formValid}
-                className={`w-full rounded-xl text-white font-semibold py-3.5 disabled:opacity-50 ${
-                  isGcash ? "bg-gcash" : "bg-maya"
-                }`}
+                className={`w-full rounded-xl text-white font-semibold py-3.5 disabled:opacity-50 ${style.solidBg}`}
               >
                 Next
               </button>
@@ -401,12 +403,12 @@ export default function LogPage() {
             </button>
             <h1 className="font-display font-bold text-2xl mb-1">Transaction summary</h1>
             <p className="text-text-mid text-sm mb-6">
-              Review the details, then open {platform === "gcash" ? "GCash" : "Maya"} to complete it.
+              Review the details, then open {platformLabel} to complete it.
             </p>
 
             <div className="bg-ink-card border border-ink-line rounded-xl divide-y divide-dashed divide-ink-line">
               <SummaryRow label="Customer number" value={customerMobile} mono />
-              <SummaryRow label="Provider" value={platform === "gcash" ? "GCash" : "Maya"} />
+              <SummaryRow label="Provider" value={platformLabel} />
               <SummaryRow label="Transaction" value={TX_LABELS[type]} />
               <SummaryRow label="Amount" value={money(numericAmount)} mono />
               <SummaryRow label="Commission" value={money(commission)} mono />
@@ -422,9 +424,7 @@ export default function LogPage() {
 
             <button
               onClick={openProviderApp}
-              className={`w-full mt-6 rounded-xl text-white font-semibold py-3.5 flex items-center justify-center gap-2 ${
-                isGcash ? "bg-gcash" : "bg-maya"
-              }`}
+              className={`w-full mt-6 rounded-xl text-white font-semibold py-3.5 flex items-center justify-center gap-2 ${style.solidBg}`}
             >
               <ExternalLink size={18} /> {deepLink.label}
             </button>
@@ -453,7 +453,7 @@ export default function LogPage() {
             </button>
             <h1 className="font-display font-bold text-2xl mb-1">Verification</h1>
             <p className="text-text-mid text-sm mb-6">
-              Confirm the transaction went through in the {platform === "gcash" ? "GCash" : "Maya"} app before saving it.
+              Confirm the transaction went through in the {platformLabel} app before saving it.
             </p>
 
             <div className="bg-ink-card border border-ink-line rounded-xl p-4 space-y-4">
@@ -470,9 +470,7 @@ export default function LogPage() {
                   value={reference}
                   onChange={(e) => setReference(e.target.value)}
                   placeholder="Verify against the app receipt (optional)"
-                  className={`mt-1 w-full rounded-lg bg-ink border border-ink-line px-3 py-2.5 text-sm text-text-hi placeholder:text-text-low outline-none ${
-                    isGcash ? "focus:border-gcash" : "focus:border-maya"
-                  }`}
+                  className={`mt-1 w-full rounded-lg bg-ink border border-ink-line px-3 py-2.5 text-sm text-text-hi placeholder:text-text-low outline-none ${style.focusBorder}`}
                 />
               </div>
 
@@ -484,7 +482,7 @@ export default function LogPage() {
                   className="mt-0.5 w-4 h-4"
                 />
                 <span className="text-sm text-text-mid">
-                  I confirm that the transaction was completed successfully in the {platform === "gcash" ? "GCash" : "Maya"} app.
+                  I confirm that the transaction was completed successfully in the {platformLabel} app.
                 </span>
               </label>
             </div>
@@ -492,9 +490,7 @@ export default function LogPage() {
             <button
               onClick={handleComplete}
               disabled={!confirmed || saving}
-              className={`w-full mt-6 rounded-xl text-white font-semibold py-3.5 disabled:opacity-50 flex items-center justify-center gap-2 ${
-                isGcash ? "bg-gcash" : "bg-maya"
-              }`}
+              className={`w-full mt-6 rounded-xl text-white font-semibold py-3.5 disabled:opacity-50 flex items-center justify-center gap-2 ${style.solidBg}`}
             >
               {success ? (
                 <>
@@ -512,8 +508,8 @@ export default function LogPage() {
 
       {isOwner && editingBalance && (
         <BalanceEditModal
-          label={editingBalance === "gcash" ? "GCash" : "Maya"}
-          currentBalance={editingBalance === "gcash" ? gcashBal : mayaBal}
+          label={PLATFORM_LABELS[editingBalance]}
+          currentBalance={editingBalance === "gcash" ? gcashBal : editingBalance === "maya" ? mayaBal : ditoBal}
           onClose={() => setEditingBalance(null)}
           onSave={async (v) => {
             await handleBalanceSave(editingBalance, v);

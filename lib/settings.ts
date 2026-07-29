@@ -16,6 +16,8 @@ export async function fetchSettings(supabase: SupabaseClient): Promise<AppSettin
       map.maya_banktransfer_fixed_fee ?? map.maya_fixed_fee ?? DEFAULT_SETTINGS.maya_banktransfer_fixed_fee,
     maya_load_tiers: map.maya_load_tiers ?? DEFAULT_SETTINGS.maya_load_tiers,
     maya_banktransfer_tiers: map.maya_banktransfer_tiers ?? DEFAULT_SETTINGS.maya_banktransfer_tiers,
+    dito_load_fixed_fee: map.dito_load_fixed_fee ?? DEFAULT_SETTINGS.dito_load_fixed_fee,
+    dito_load_tiers: map.dito_load_tiers ?? DEFAULT_SETTINGS.dito_load_tiers,
   };
 }
 
