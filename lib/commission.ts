@@ -34,12 +34,14 @@ export function calcTieredCommission(amount: number, tiers: Tier[]): number {
   return fullBlocks * blockFee + remainderFee;
 }
 
-/** Maya Load: Maya's own fixed fee + our tiered commission (bracket-based, same rule as calcTieredCommission). */
-export function calcLoadCommission(mayaFixedFee: number, tiers: Tier[], amount: number): number {
-  return Math.max(0, mayaFixedFee) + calcTieredCommission(amount, tiers);
-}
-
-/** Maya Bank Transfer: Maya's own fixed fee + our tiered commission (bracket-based, same rule as calcTieredCommission). */
-export function calcBankTransferCommission(mayaFixedFee: number, tiers: Tier[], amount: number): number {
-  return Math.max(0, mayaFixedFee) + calcTieredCommission(amount, tiers);
-}
+// calcLoadCommission / calcBankTransferCommission used to live here and add
+// Maya/DITO's own fixed fee on top of the tiered commission, returning one
+// blended number. That mixed our actual earned commission (revenue) with
+// the provider's own deduction (a cost to us, taken out of our float by
+// their app, not something we earn) -- inflating "commission earned" on
+// the Dashboard and making History impossible to itemize correctly.
+//
+// Load, Bank Transfer, and DITO Load now just call calcTieredCommission()
+// directly like every other transaction type. The provider's fixed fee is
+// tracked separately wherever it's needed (see `providerFee` in
+// app/log/page.tsx and the `provider_fee` column on `transactions`).

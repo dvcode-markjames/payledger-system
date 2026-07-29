@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { fetchSettings } from "@/lib/settings";
 import { useRole } from "@/lib/useRole";
 import { useToast } from "@/components/Toast";
-import { calcTieredCommission, calcLoadCommission, calcBankTransferCommission } from "@/lib/commission";
+import { calcTieredCommission } from "@/lib/commission";
 import {
   AppSettings,
   DEFAULT_SETTINGS,
@@ -96,28 +96,36 @@ export default function LogPage() {
       return calcTieredCommission(numericAmount, settings.maya_tiers);
     }
     if (type === "load") {
-      return calcLoadCommission(settings.maya_load_fixed_fee, settings.maya_load_tiers, numericAmount);
+      return calcTieredCommission(numericAmount, settings.maya_load_tiers);
     }
     if (type === "bank_transfer") {
-      return calcBankTransferCommission(
-        settings.maya_banktransfer_fixed_fee,
-        settings.maya_banktransfer_tiers,
-        numericAmount
-      );
+      return calcTieredCommission(numericAmount, settings.maya_banktransfer_tiers);
     }
     if (type === "dito_load") {
-      return calcLoadCommission(settings.dito_load_fixed_fee, settings.dito_load_tiers, numericAmount);
+      return calcTieredCommission(numericAmount, settings.dito_load_tiers);
     }
     return 0;
   }, [numericAmount, type, settings]);
+
+  // Maya/DITO's own fixed fee, deducted by their app straight from our
+  // float on top of the transaction amount. This is a cost to us, not our
+  // commission -- kept separate everywhere (UI, RPC call, and its own
+  // `provider_fee` column in History) so it never gets counted as
+  // earnings on the Dashboard.
+  const providerFee = useMemo(() => {
+    if (type === "load") return Math.max(0, settings.maya_load_fixed_fee);
+    if (type === "bank_transfer") return Math.max(0, settings.maya_banktransfer_fixed_fee);
+    if (type === "dito_load") return Math.max(0, settings.dito_load_fixed_fee);
+    return 0;
+  }, [type, settings]);
 
   const isMoneyOut =
     type === "cash_in" || type === "maya_cash_in" || type === "load" || type === "bank_transfer" || type === "dito_load";
   const netTotal = !commissionIncluded
     ? numericAmount
     : isMoneyOut
-    ? numericAmount + commission
-    : numericAmount - commission;
+    ? numericAmount + commission + providerFee
+    : numericAmount - commission - providerFee;
 
   const currentBalance = platform === "gcash" ? gcashBal : platform === "maya" ? mayaBal : ditoBal;
   const style = PLATFORM_STYLES[platform];
@@ -167,19 +175,11 @@ export default function LogPage() {
     setSaving(true);
     setErrorMsg(null);
 
-    // Provider-side fixed fee taken from our own float on top of the
-    // transaction amount. The RPC parameter is still named p_maya_fee for
-    // backward compatibility, but it's a generic "float fee" regardless of
-    // which provider (Maya, DITO) is charging it.
-    const providerFee =
-      type === "load"
-        ? settings.maya_load_fixed_fee
-        : type === "bank_transfer"
-        ? settings.maya_banktransfer_fixed_fee
-        : type === "dito_load"
-        ? settings.dito_load_fixed_fee
-        : 0;
-
+    // providerFee is computed once above (alongside `commission`) so the
+    // same number is used for what's shown in the Summary and what's sent
+    // here. The RPC parameter is still named p_maya_fee for backward
+    // compatibility, but it's a generic "float fee" regardless of which
+    // provider (Maya, DITO) is charging it.
     const { error } = await supabase.rpc("log_transaction", {
       p_platform: platform,
       p_type: type,
@@ -345,6 +345,12 @@ export default function LogPage() {
                   <span className="text-text-mid">Commission</span>
                   <span className="font-mono tabular text-in">{money(commission)}</span>
                 </div>
+                {providerFee > 0 && (
+                  <div className="flex justify-between text-sm py-2">
+                    <span className="text-text-mid">{platformLabel} fee</span>
+                    <span className="font-mono tabular text-out">{money(providerFee)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-sm py-2">
                   <span className="text-text-mid">{isMoneyOut ? "Customer pays (cash)" : "Customer receives (cash)"}</span>
                   <span className="font-mono tabular font-semibold">{money(netTotal)}</span>
@@ -420,6 +426,9 @@ export default function LogPage() {
               <SummaryRow label="Transaction" value={TX_LABELS[type]} />
               <SummaryRow label="Amount" value={money(numericAmount)} mono />
               <SummaryRow label="Commission" value={money(commission)} mono />
+              {providerFee > 0 && (
+                <SummaryRow label={`${platformLabel} fee`} value={money(providerFee)} mono />
+              )}
               <SummaryRow
                 label={isMoneyOut ? "Customer pays" : "Customer receives"}
                 value={money(netTotal)}

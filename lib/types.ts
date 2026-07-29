@@ -65,6 +65,7 @@ export interface Transaction {
   amount: number;
   commission: number;
   commission_included: boolean; // true if commission was netted into net_total instead of charged separately
+  provider_fee: number; // Maya/DITO's own fixed fee for Load/Bank Transfer, deducted from OUR float -- a cost, not our commission
   net_total: number; // what the customer actually receives / pays
   balance_before: number | null;
   balance_after: number | null;

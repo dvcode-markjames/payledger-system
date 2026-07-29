@@ -12,10 +12,11 @@ interface PlatformTotals {
   cashIn: number;
   cashOut: number;
   commission: number;
+  providerFee: number;
   count: number;
 }
 
-const EMPTY: PlatformTotals = { cashIn: 0, cashOut: 0, commission: 0, count: 0 };
+const EMPTY: PlatformTotals = { cashIn: 0, cashOut: 0, commission: 0, providerFee: 0, count: 0 };
 
 // Converts a "YYYY-MM-DD" Manila calendar date into a reference Date whose
 // getManilaTodayRangeUTC() bounds land on that same Manila day.
@@ -76,6 +77,7 @@ export default function DashboardPage() {
     (txs as Transaction[] | null)?.forEach((t) => {
       const bucket = totals[t.platform];
       bucket.commission += Number(t.commission);
+      bucket.providerFee += Number(t.provider_fee ?? 0);
       bucket.count += 1;
       if (t.type === "cash_in" || t.type === "maya_cash_in") bucket.cashIn += Number(t.amount);
       else if (t.type === "cash_out" || t.type === "maya_cash_out") bucket.cashOut += Number(t.amount);
@@ -151,6 +153,7 @@ export default function DashboardPage() {
   }, [load]);
 
   const totalCommission = gcash.commission + maya.commission + dito.commission;
+  const totalProviderFee = gcash.providerFee + maya.providerFee + dito.providerFee;
   const selectedLabel = useMemo(() => {
     const [y, m, d] = selectedDate.split("-").map(Number);
     return new Date(y, m - 1, d).toLocaleDateString("en-PH", {
@@ -234,6 +237,16 @@ export default function DashboardPage() {
               ₱{totalCommission.toFixed(2)}
             </span>
           </div>
+          {totalProviderFee > 0 && (
+            <div className="px-5 py-4 border-t border-dashed border-ink-line flex items-center justify-between">
+              <span className="text-sm text-text-mid flex items-center gap-2">
+                <Coins size={15} /> Maya/DITO Fixed fee paid {isToday ? "today" : "that day"}
+              </span>
+              <span className="font-mono tabular font-semibold text-lg text-out">
+                ₱{totalProviderFee.toFixed(2)}
+              </span>
+            </div>
+          )}
         </div>
 
         <Link
@@ -290,6 +303,12 @@ function PlatformStub({
           <span>Commission</span>
           <span className="font-mono tabular">₱{totals.commission.toFixed(2)}</span>
         </div>
+        {totals.providerFee > 0 && (
+          <div className="flex items-center justify-between text-text-low text-xs">
+            <span>Provider fee</span>
+            <span className="font-mono tabular">₱{totals.providerFee.toFixed(2)}</span>
+          </div>
+        )}
         <div className="flex items-center justify-between text-text-low text-xs">
           <span>Transactions</span>
           <span className="font-mono tabular">{totals.count}</span>

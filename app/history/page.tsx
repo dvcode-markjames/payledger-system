@@ -56,9 +56,10 @@ export default function HistoryPage() {
       (acc, t) => {
         acc.amount += Number(t.amount);
         acc.commission += Number(t.commission);
+        acc.providerFee += Number(t.provider_fee ?? 0);
         return acc;
       },
-      { amount: 0, commission: 0 }
+      { amount: 0, commission: 0, providerFee: 0 }
     );
   }, [filtered]);
 
@@ -70,6 +71,7 @@ export default function HistoryPage() {
       Type: TX_LABELS[t.type],
       Amount: t.amount,
       Commission: t.commission,
+      "Provider fee": t.provider_fee,
       "Commission netted in": t.commission_included ? "Yes" : "No",
       "Net total": t.net_total,
       "Balance before": t.balance_before,
@@ -192,8 +194,9 @@ export default function HistoryPage() {
                   <th className="px-4 py-3">Type</th>
                   <th className="px-4 py-3 text-right">Amount</th>
                   <th className="px-4 py-3 text-right">Commission</th>
+                  <th className="px-4 py-3 text-right">Provider fee</th>
                   <th className="px-4 py-3 text-right">Net total</th>
-                  <th className="px-4 py-3">Fee</th>
+                  <th className="px-4 py-3">Commission mode</th>
                   <th className="px-4 py-3">Customer #</th>
                   <th className="px-4 py-3">Reference</th>
                   <th className="px-4 py-3">Note</th>
@@ -221,6 +224,9 @@ export default function HistoryPage() {
                       ₱{Number(t.amount).toFixed(2)}
                     </td>
                     <td className="px-4 py-3 text-right font-mono tabular text-in">₱{Number(t.commission).toFixed(2)}</td>
+                    <td className="px-4 py-3 text-right font-mono tabular text-out">
+                      {t.provider_fee ? `₱${Number(t.provider_fee).toFixed(2)}` : "—"}
+                    </td>
                     <td className="px-4 py-3 text-right font-mono tabular">₱{Number(t.net_total).toFixed(2)}</td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <span
@@ -254,7 +260,7 @@ export default function HistoryPage() {
                 ))}
                 {!loading && filtered.length === 0 && (
                   <tr>
-                    <td colSpan={11} className="px-4 py-10 text-center text-text-low">
+                    <td colSpan={12} className="px-4 py-10 text-center text-text-low">
                       No transactions match these filters.
                     </td>
                   </tr>
@@ -267,7 +273,8 @@ export default function HistoryPage() {
                   </td>
                   <td className="px-4 py-3 text-right font-mono tabular">₱{totals.amount.toFixed(2)}</td>
                   <td className="px-4 py-3 text-right font-mono tabular text-in">₱{totals.commission.toFixed(2)}</td>
-                  <td colSpan={5} />
+                  <td className="px-4 py-3 text-right font-mono tabular text-out">₱{totals.providerFee.toFixed(2)}</td>
+                  <td colSpan={6} />
                 </tr>
               </tfoot>
             </table>
@@ -321,6 +328,12 @@ export default function HistoryPage() {
                     <div className="font-mono tabular">₱{Number(t.net_total).toFixed(2)}</div>
                   </div>
                 </div>
+                {t.provider_fee > 0 && (
+                  <div className="mt-1.5 text-xs text-text-low">
+                    {PLATFORM_LABELS[t.platform]} fee (not our commission):{" "}
+                    <span className="font-mono tabular text-out">₱{Number(t.provider_fee).toFixed(2)}</span>
+                  </div>
+                )}
                 {(t.customer_mobile || t.reference_no || t.note) && (
                   <div className="mt-2 pt-2 border-t border-dashed border-ink-line text-xs text-text-low space-x-3">
                     {t.customer_mobile && <span className="font-mono tabular">#: {t.customer_mobile}</span>}
