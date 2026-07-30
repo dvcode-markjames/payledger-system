@@ -8,6 +8,10 @@ export async function fetchSettings(supabase: SupabaseClient): Promise<AppSettin
   const map = Object.fromEntries(data.map((row) => [row.key, row.value]));
   return {
     gcash_tiers: map.gcash_tiers ?? DEFAULT_SETTINGS.gcash_tiers,
+    gcash_load_fixed_fee: map.gcash_load_fixed_fee ?? DEFAULT_SETTINGS.gcash_load_fixed_fee,
+    gcash_banktransfer_fixed_fee: map.gcash_banktransfer_fixed_fee ?? DEFAULT_SETTINGS.gcash_banktransfer_fixed_fee,
+    gcash_load_tiers: map.gcash_load_tiers ?? DEFAULT_SETTINGS.gcash_load_tiers,
+    gcash_banktransfer_tiers: map.gcash_banktransfer_tiers ?? DEFAULT_SETTINGS.gcash_banktransfer_tiers,
     maya_tiers: map.maya_tiers ?? DEFAULT_SETTINGS.maya_tiers,
     // Falls back to the old shared "maya_fixed_fee" key for accounts that
     // saved settings before Load/Bank Transfer fees were split apart.

@@ -21,7 +21,7 @@ import AppShell from "@/components/AppShell";
 import BalanceEditModal from "@/components/BalanceEditModal";
 import { Pencil, Check, Lock, ArrowLeft, ExternalLink } from "lucide-react";
 
-const GCASH_TYPES: TxType[] = ["cash_in", "cash_out"];
+const GCASH_TYPES: TxType[] = ["cash_in", "cash_out", "load", "bank_transfer"];
 const MAYA_TYPES: TxType[] = ["maya_cash_in", "maya_cash_out", "load", "bank_transfer"];
 const DITO_TYPES: TxType[] = ["dito_load"];
 
@@ -31,6 +31,15 @@ const PH_MOBILE_RE = /^09\d{9}$/;
 
 function money(n: number) {
   return `₱${n.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+}
+
+// Bank account numbers vary in length by bank (e.g. "0121 3969 3190"),
+// unlike GCash/Maya mobile numbers which are always 11 digits -- so this
+// just groups whatever digits are typed into 4s for readability instead
+// of enforcing a fixed length.
+function formatAccountNumber(raw: string) {
+  const digits = raw.replace(/[^\d]/g, "").slice(0, 20);
+  return digits.replace(/(.{4})/g, "$1 ").trim();
 }
 
 export default function LogPage() {
@@ -44,6 +53,8 @@ export default function LogPage() {
   const [platform, setPlatform] = useState<Platform>("gcash");
   const [type, setType] = useState<TxType>("cash_in");
   const [customerMobile, setCustomerMobile] = useState("");
+  const [accountName, setAccountName] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
   const [amount, setAmount] = useState("");
   const [reference, setReference] = useState("");
   const [note, setNote] = useState("");
@@ -82,10 +93,16 @@ export default function LogPage() {
 
   useEffect(() => {
     setCommissionIncluded(false);
+    setCustomerMobile("");
+    setAccountName("");
+    setAccountNumber("");
   }, [type]);
+
+  const isBankTransfer = type === "bank_transfer";
 
   const numericAmount = parseFloat(amount) || 0;
   const mobileValid = PH_MOBILE_RE.test(customerMobile.trim());
+  const accountValid = accountName.trim().length > 0 && accountNumber.replace(/[^\d]/g, "").length >= 4;
 
   const commission = useMemo(() => {
     if (numericAmount <= 0) return 0;
@@ -96,16 +113,19 @@ export default function LogPage() {
       return calcTieredCommission(numericAmount, settings.maya_tiers);
     }
     if (type === "load") {
-      return calcTieredCommission(numericAmount, settings.maya_load_tiers);
+      return calcTieredCommission(numericAmount, platform === "gcash" ? settings.gcash_load_tiers : settings.maya_load_tiers);
     }
     if (type === "bank_transfer") {
-      return calcTieredCommission(numericAmount, settings.maya_banktransfer_tiers);
+      return calcTieredCommission(
+        numericAmount,
+        platform === "gcash" ? settings.gcash_banktransfer_tiers : settings.maya_banktransfer_tiers
+      );
     }
     if (type === "dito_load") {
       return calcTieredCommission(numericAmount, settings.dito_load_tiers);
     }
     return 0;
-  }, [numericAmount, type, settings]);
+  }, [numericAmount, type, platform, settings]);
 
   // Maya/DITO's own fixed fee, deducted by their app straight from our
   // float on top of the transaction amount. This is a cost to us, not our
@@ -113,11 +133,18 @@ export default function LogPage() {
   // `provider_fee` column in History) so it never gets counted as
   // earnings on the Dashboard.
   const providerFee = useMemo(() => {
-    if (type === "load") return Math.max(0, settings.maya_load_fixed_fee);
-    if (type === "bank_transfer") return Math.max(0, settings.maya_banktransfer_fixed_fee);
+    if (type === "load") {
+      return Math.max(0, platform === "gcash" ? settings.gcash_load_fixed_fee : settings.maya_load_fixed_fee);
+    }
+    if (type === "bank_transfer") {
+      return Math.max(
+        0,
+        platform === "gcash" ? settings.gcash_banktransfer_fixed_fee : settings.maya_banktransfer_fixed_fee
+      );
+    }
     if (type === "dito_load") return Math.max(0, settings.dito_load_fixed_fee);
     return 0;
-  }, [type, settings]);
+  }, [type, platform, settings]);
 
   const isMoneyOut =
     type === "cash_in" || type === "maya_cash_in" || type === "load" || type === "bank_transfer" || type === "dito_load";
@@ -132,7 +159,7 @@ export default function LogPage() {
   const platformLabel = PLATFORM_LABELS[platform];
   const deepLink = APP_DEEP_LINKS[platform];
 
-  const formValid = numericAmount > 0 && mobileValid;
+  const formValid = numericAmount > 0 && (isBankTransfer ? accountValid : mobileValid);
 
   async function handleBalanceSave(platformToEdit: Platform, value: number, reason: string) {
     setErrorMsg(null);
@@ -189,7 +216,9 @@ export default function LogPage() {
       p_reference_no: reference || null,
       p_note: note || null,
       p_maya_fee: providerFee,
-      p_customer_mobile: customerMobile.trim(),
+      p_customer_mobile: isBankTransfer ? null : customerMobile.trim(),
+      p_account_name: isBankTransfer ? accountName.trim() : null,
+      p_account_number: isBankTransfer ? accountNumber.replace(/[^\d]/g, "") : null,
       p_status: "completed",
     });
 
@@ -205,6 +234,8 @@ export default function LogPage() {
     setAmount("");
     setReference("");
     setNote("");
+    setAccountName("");
+    setAccountNumber("");
     setCustomerMobile("");
     setCommissionIncluded(false);
     setOpenedApp(false);
@@ -311,22 +342,53 @@ export default function LogPage() {
                 </div>
               </div>
 
-              <div>
-                <label className="text-xs text-text-mid uppercase tracking-wide">Customer mobile number</label>
-                <input
-                  inputMode="numeric"
-                  required
-                  value={customerMobile}
-                  onChange={(e) => setCustomerMobile(e.target.value.replace(/[^\d]/g, "").slice(0, 11))}
-                  placeholder="09XXXXXXXXX"
-                  className={`mt-1 w-full rounded-lg bg-ink-card border px-3 py-3 font-mono tabular text-text-hi placeholder:text-text-low outline-none ${
-                    customerMobile && !mobileValid ? "border-red-500/60" : `border-ink-line ${style.focusBorder}`
-                  }`}
-                />
-                {customerMobile && !mobileValid && (
-                  <p className="text-xs text-red-400 mt-1">Enter an 11-digit mobile number starting with 09.</p>
-                )}
-              </div>
+              {isBankTransfer ? (
+                <div className="grid grid-cols-1 gap-3">
+                  <div>
+                    <label className="text-xs text-text-mid uppercase tracking-wide">Account name</label>
+                    <input
+                      required
+                      value={accountName}
+                      onChange={(e) => setAccountName(e.target.value)}
+                      placeholder="Juan Dela Cruz"
+                      className={`mt-1 w-full rounded-lg bg-ink-card border border-ink-line px-3 py-3 text-text-hi placeholder:text-text-low outline-none ${style.focusBorder}`}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-text-mid uppercase tracking-wide">Account number</label>
+                    <input
+                      inputMode="numeric"
+                      required
+                      value={accountNumber}
+                      onChange={(e) => setAccountNumber(formatAccountNumber(e.target.value))}
+                      placeholder="0231 4321 0102"
+                      className={`mt-1 w-full rounded-lg bg-ink-card border px-3 py-3 font-mono tabular text-text-hi placeholder:text-text-low outline-none ${
+                        accountNumber && !accountValid ? "border-red-500/60" : `border-ink-line ${style.focusBorder}`
+                      }`}
+                    />
+                    <p className="text-xs text-text-low mt-1">
+                      Account numbers vary in length by bank — type it as shown on the receiving account.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <label className="text-xs text-text-mid uppercase tracking-wide">Customer mobile number</label>
+                  <input
+                    inputMode="numeric"
+                    required
+                    value={customerMobile}
+                    onChange={(e) => setCustomerMobile(e.target.value.replace(/[^\d]/g, "").slice(0, 11))}
+                    placeholder="09XXXXXXXXX"
+                    className={`mt-1 w-full rounded-lg bg-ink-card border px-3 py-3 font-mono tabular text-text-hi placeholder:text-text-low outline-none ${
+                      customerMobile && !mobileValid ? "border-red-500/60" : `border-ink-line ${style.focusBorder}`
+                    }`}
+                  />
+                  {customerMobile && !mobileValid && (
+                    <p className="text-xs text-red-400 mt-1">Enter an 11-digit mobile number starting with 09.</p>
+                  )}
+                </div>
+              )}
 
               <div data-tour="log-amount">
                 <label className="text-xs text-text-mid uppercase tracking-wide">Amount (₱)</label>
@@ -421,7 +483,14 @@ export default function LogPage() {
             </p>
 
             <div className="bg-ink-card border border-ink-line rounded-xl divide-y divide-dashed divide-ink-line">
-              <SummaryRow label="Customer number" value={customerMobile} mono />
+              {isBankTransfer ? (
+                <>
+                  <SummaryRow label="Account name" value={accountName} />
+                  <SummaryRow label="Account number" value={accountNumber} mono />
+                </>
+              ) : (
+                <SummaryRow label="Customer number" value={customerMobile} mono />
+              )}
               <SummaryRow label="Provider" value={platformLabel} />
               <SummaryRow label="Transaction" value={TX_LABELS[type]} />
               <SummaryRow label="Amount" value={money(numericAmount)} mono />
@@ -474,12 +543,29 @@ export default function LogPage() {
             </p>
 
             <div className="bg-ink-card border border-ink-line rounded-xl p-4 space-y-4">
-              <div>
-                <label className="text-xs text-text-mid uppercase tracking-wide">Customer number</label>
-                <div className="mt-1 w-full rounded-lg bg-ink border border-ink-line px-3 py-2.5 text-sm font-mono tabular text-text-hi">
-                  {customerMobile || "—"}
+              {isBankTransfer ? (
+                <>
+                  <div>
+                    <label className="text-xs text-text-mid uppercase tracking-wide">Account name</label>
+                    <div className="mt-1 w-full rounded-lg bg-ink border border-ink-line px-3 py-2.5 text-sm text-text-hi">
+                      {accountName || "—"}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs text-text-mid uppercase tracking-wide">Account number</label>
+                    <div className="mt-1 w-full rounded-lg bg-ink border border-ink-line px-3 py-2.5 text-sm font-mono tabular text-text-hi">
+                      {accountNumber || "—"}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div>
+                  <label className="text-xs text-text-mid uppercase tracking-wide">Customer number</label>
+                  <div className="mt-1 w-full rounded-lg bg-ink border border-ink-line px-3 py-2.5 text-sm font-mono tabular text-text-hi">
+                    {customerMobile || "—"}
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div>
                 <label className="text-xs text-text-mid uppercase tracking-wide">Reference number</label>

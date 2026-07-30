@@ -33,6 +33,10 @@ export default function SettingsPage() {
     try {
       await Promise.all([
         saveSetting(supabase, "gcash_tiers", settings.gcash_tiers),
+        saveSetting(supabase, "gcash_load_fixed_fee", settings.gcash_load_fixed_fee),
+        saveSetting(supabase, "gcash_banktransfer_fixed_fee", settings.gcash_banktransfer_fixed_fee),
+        saveSetting(supabase, "gcash_load_tiers", settings.gcash_load_tiers),
+        saveSetting(supabase, "gcash_banktransfer_tiers", settings.gcash_banktransfer_tiers),
         saveSetting(supabase, "maya_tiers", settings.maya_tiers),
         saveSetting(supabase, "maya_load_fixed_fee", settings.maya_load_fixed_fee),
         saveSetting(supabase, "maya_banktransfer_fixed_fee", settings.maya_banktransfer_fixed_fee),
@@ -86,13 +90,61 @@ export default function SettingsPage() {
         )}
 
         <div className="grid md:grid-cols-3 gap-4 items-start">
-          <section data-tour="settings-tiers" className="bg-ink-card border border-ink-line rounded-xl p-4">
-            <h2 className="font-display font-semibold text-gcash mb-3">GCash — Cash In / Cash Out</h2>
-            <TierEditor
-              tiers={settings.gcash_tiers}
-              onChange={(gcash_tiers) => setSettings((s) => ({ ...s, gcash_tiers }))}
-            />
-          </section>
+          <div className="space-y-4">
+            <section data-tour="settings-tiers" className="bg-ink-card border border-ink-line rounded-xl p-4">
+              <h2 className="font-display font-semibold text-gcash mb-3">GCash — Cash In / Cash Out</h2>
+              <TierEditor
+                tiers={settings.gcash_tiers}
+                onChange={(gcash_tiers) => setSettings((s) => ({ ...s, gcash_tiers }))}
+              />
+            </section>
+
+            <section className="bg-ink-card border border-ink-line rounded-xl p-4 space-y-4">
+              <h2 className="font-display font-semibold text-gcash mb-1">GCash — Load & Bank Transfer</h2>
+
+              <div className="border-b border-ink-line pb-4 space-y-2">
+                <label className="text-xs text-text-mid uppercase tracking-wide mb-1.5 block">Load</label>
+                <div>
+                  <label className="text-[11px] text-text-low">GCash's fixed fee per transaction (₱)</label>
+                  <input
+                    type="number"
+                    value={settings.gcash_load_fixed_fee}
+                    onChange={(e) =>
+                      setSettings((s) => ({ ...s, gcash_load_fixed_fee: parseFloat(e.target.value) || 0 }))
+                    }
+                    className="mt-1 w-full rounded-lg bg-ink border border-ink-line px-3 py-2.5 font-mono tabular"
+                  />
+                </div>
+                <label className="text-[11px] text-text-low mb-1.5 block">Our added commission — Load</label>
+                <TierEditor
+                  tiers={settings.gcash_load_tiers}
+                  onChange={(gcash_load_tiers) => setSettings((s) => ({ ...s, gcash_load_tiers }))}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs text-text-mid uppercase tracking-wide mb-1.5 block">Bank transfer</label>
+                <div>
+                  <label className="text-[11px] text-text-low">GCash's fixed fee per transaction (₱)</label>
+                  <input
+                    type="number"
+                    value={settings.gcash_banktransfer_fixed_fee}
+                    onChange={(e) =>
+                      setSettings((s) => ({ ...s, gcash_banktransfer_fixed_fee: parseFloat(e.target.value) || 0 }))
+                    }
+                    className="mt-1 w-full rounded-lg bg-ink border border-ink-line px-3 py-2.5 font-mono tabular"
+                  />
+                </div>
+                <label className="text-[11px] text-text-low mb-1.5 block">
+                  Our added commission — Bank transfer
+                </label>
+                <TierEditor
+                  tiers={settings.gcash_banktransfer_tiers}
+                  onChange={(gcash_banktransfer_tiers) => setSettings((s) => ({ ...s, gcash_banktransfer_tiers }))}
+                />
+              </div>
+            </section>
+          </div>
 
           <div className="space-y-4">
             <section className="bg-ink-card border border-ink-line rounded-xl p-4">

@@ -44,7 +44,9 @@ export default function HistoryPage() {
       if (to && new Date(t.created_at) > new Date(to + "T23:59:59")) return false;
       if (search) {
         const q = search.toLowerCase();
-        const hay = `${t.reference_no ?? ""} ${t.note ?? ""} ${t.customer_mobile ?? ""} ${t.amount}`.toLowerCase();
+        const hay = `${t.reference_no ?? ""} ${t.note ?? ""} ${t.customer_mobile ?? ""} ${t.account_name ?? ""} ${
+          t.account_number ?? ""
+        } ${t.amount}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
@@ -77,6 +79,8 @@ export default function HistoryPage() {
       "Balance before": t.balance_before,
       "Balance after": t.balance_after,
       "Customer number": t.customer_mobile ?? "",
+      "Account name": t.account_name ?? "",
+      "Account number": t.account_number ?? "",
       Reference: t.reference_no ?? "",
       Note: t.note ?? "",
     }));
@@ -197,7 +201,7 @@ export default function HistoryPage() {
                   <th className="px-4 py-3 text-right">Provider fee</th>
                   <th className="px-4 py-3 text-right">Net total</th>
                   <th className="px-4 py-3">Commission mode</th>
-                  <th className="px-4 py-3">Customer #</th>
+                  <th className="px-4 py-3">Customer # / Account</th>
                   <th className="px-4 py-3">Reference</th>
                   <th className="px-4 py-3">Note</th>
                   <th className="px-4 py-3 print:hidden"></th>
@@ -239,7 +243,16 @@ export default function HistoryPage() {
                         {t.commission_included ? "Netted in" : "Separate"}
                       </span>
                     </td>
-                    <td className="px-4 py-3 font-mono tabular text-text-low">{t.customer_mobile ?? "—"}</td>
+                    <td className="px-4 py-3 text-text-low">
+                      {t.account_name || t.account_number ? (
+                        <div className="leading-tight">
+                          <div>{t.account_name ?? "—"}</div>
+                          <div className="font-mono tabular text-xs">{t.account_number ?? "—"}</div>
+                        </div>
+                      ) : (
+                        <span className="font-mono tabular">{t.customer_mobile ?? "—"}</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-text-low">{t.reference_no ?? "—"}</td>
                     <td className="px-4 py-3 text-text-low">
                       {t.note ?? "—"}
@@ -334,9 +347,15 @@ export default function HistoryPage() {
                     <span className="font-mono tabular text-out">₱{Number(t.provider_fee).toFixed(2)}</span>
                   </div>
                 )}
-                {(t.customer_mobile || t.reference_no || t.note) && (
+                {(t.customer_mobile || t.account_name || t.account_number || t.reference_no || t.note) && (
                   <div className="mt-2 pt-2 border-t border-dashed border-ink-line text-xs text-text-low space-x-3">
                     {t.customer_mobile && <span className="font-mono tabular">#: {t.customer_mobile}</span>}
+                    {(t.account_name || t.account_number) && (
+                      <span>
+                        {t.account_name ?? "—"}{" "}
+                        <span className="font-mono tabular">({t.account_number ?? "—"})</span>
+                      </span>
+                    )}
                     {t.reference_no && <span>Ref: {t.reference_no}</span>}
                     {t.note && (
                       <span>

@@ -72,6 +72,8 @@ export interface Transaction {
   reference_no: string | null;
   note: string | null;
   customer_mobile: string | null;
+  account_name: string | null;
+  account_number: string | null;
   status: TxStatus;
   note_edited_at?: string | null;
   note_edited_by?: string | null;
@@ -97,6 +99,10 @@ export const DEEP_LINK_PATHS: Partial<Record<TxType, { gcash?: string; maya?: st
 
 export interface AppSettings {
   gcash_tiers: Tier[];
+  gcash_load_fixed_fee: number;
+  gcash_banktransfer_fixed_fee: number;
+  gcash_load_tiers: Tier[];
+  gcash_banktransfer_tiers: Tier[];
   maya_tiers: Tier[];
   maya_load_fixed_fee: number;
   maya_banktransfer_fixed_fee: number;
@@ -112,6 +118,12 @@ export const DEFAULT_SETTINGS: AppSettings = {
     { min: 101, max: 500, fee: 10 },
     { min: 501, max: 1000, fee: 15 },
   ],
+  // GCash doesn't charge a fixed per-transaction fee for Load; its Bank
+  // Transfer (via DCPay/Coins.ph) does -- ₱15 flat, per the in-app screen.
+  gcash_load_fixed_fee: 0,
+  gcash_banktransfer_fixed_fee: 15,
+  gcash_load_tiers: [{ min: 1, max: 1000, fee: 5 }],
+  gcash_banktransfer_tiers: [{ min: 1, max: 1000, fee: 0 }],
   maya_tiers: [
     { min: 1, max: 100, fee: 5 },
     { min: 101, max: 500, fee: 10 },
