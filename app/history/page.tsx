@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Transaction, Platform, TxType, TX_LABELS, PLATFORM_LABELS, PLATFORM_STYLES } from "@/lib/types";
+import { Transaction, Platform, TxType, TX_LABELS, PLATFORM_LABELS, PLATFORM_STYLES, balanceSign } from "@/lib/types";
 import { formatManilaTime } from "@/lib/manilaDate";
 import AppShell from "@/components/AppShell";
 import NoteEditModal from "@/components/NoteEditModal";
@@ -56,7 +56,7 @@ export default function HistoryPage() {
   const totals = useMemo(() => {
     return filtered.reduce(
       (acc, t) => {
-        acc.amount += Number(t.amount);
+        acc.amount += balanceSign(t) * Number(t.amount);
         acc.commission += Number(t.commission);
         acc.providerFee += Number(t.provider_fee ?? 0);
         return acc;
@@ -196,7 +196,7 @@ export default function HistoryPage() {
                   <th className="px-4 py-3">Date</th>
                   <th className="px-4 py-3">Platform</th>
                   <th className="px-4 py-3">Type</th>
-                  <th className="px-4 py-3 text-right">Amount</th>
+                  <th className="px-4 py-3 text-right min-w-[130px]">Amount</th>
                   <th className="px-4 py-3 text-right">Commission</th>
                   <th className="px-4 py-3 text-right">Provider fee</th>
                   <th className="px-4 py-3 text-right">Net total</th>
@@ -219,12 +219,10 @@ export default function HistoryPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-text-mid">{TX_LABELS[t.type]}</td>
-                    <td className="px-4 py-3 text-right font-mono tabular">
-                      {t.type === "balance_adjustment" && (
-                        <span className={Number(t.net_total) >= 0 ? "text-in" : "text-out"}>
-                          {Number(t.net_total) >= 0 ? "+" : "−"}
-                        </span>
-                      )}
+                    <td className="px-4 py-3 text-right font-mono tabular whitespace-nowrap">
+                      <span className={`mr-1 ${balanceSign(t) > 0 ? "text-in" : "text-out"}`}>
+                        {balanceSign(t) > 0 ? "+" : "−"}
+                      </span>
                       ₱{Number(t.amount).toFixed(2)}
                     </td>
                     <td className="px-4 py-3 text-right font-mono tabular text-in">₱{Number(t.commission).toFixed(2)}</td>
@@ -284,7 +282,13 @@ export default function HistoryPage() {
                   <td className="px-4 py-3" colSpan={3}>
                     Totals
                   </td>
-                  <td className="px-4 py-3 text-right font-mono tabular">₱{totals.amount.toFixed(2)}</td>
+                  <td
+                    className={`px-4 py-3 text-right font-mono tabular ${
+                      totals.amount < 0 ? "text-out" : ""
+                    }`}
+                  >
+                    {totals.amount < 0 ? "−" : ""}₱{Math.abs(totals.amount).toFixed(2)}
+                  </td>
                   <td className="px-4 py-3 text-right font-mono tabular text-in">₱{totals.commission.toFixed(2)}</td>
                   <td className="px-4 py-3 text-right font-mono tabular text-out">₱{totals.providerFee.toFixed(2)}</td>
                   <td colSpan={6} />
@@ -324,11 +328,9 @@ export default function HistoryPage() {
                   <div>
                     <div className="text-text-low">Amount</div>
                     <div className="font-mono tabular">
-                      {t.type === "balance_adjustment" && (
-                        <span className={Number(t.net_total) >= 0 ? "text-in" : "text-out"}>
-                          {Number(t.net_total) >= 0 ? "+" : "−"}
-                        </span>
-                      )}
+                      <span className={`mr-1 ${balanceSign(t) > 0 ? "text-in" : "text-out"}`}>
+                        {balanceSign(t) > 0 ? "+" : "−"}
+                      </span>
                       ₱{Number(t.amount).toFixed(2)}
                     </div>
                   </div>

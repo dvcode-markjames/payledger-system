@@ -19,7 +19,7 @@ import {
 } from "@/lib/types";
 import AppShell from "@/components/AppShell";
 import BalanceEditModal from "@/components/BalanceEditModal";
-import { Pencil, Check, Lock, ArrowLeft, ExternalLink, Copy } from "lucide-react";
+import { Pencil, Check, Lock, ArrowLeft, ExternalLink } from "lucide-react";
 
 const GCASH_TYPES: TxType[] = ["cash_in", "cash_out", "load", "bank_transfer"];
 const MAYA_TYPES: TxType[] = ["maya_cash_in", "maya_cash_out", "load", "bank_transfer"];
@@ -190,29 +190,11 @@ export default function LogPage() {
     // Screen-specific paths below are reverse-engineered (not officially
     // documented by GCash/Maya) and may need updating or removal if they
     // stop working after an app update — there's no way to detect failure
-    // on web ahead of time, so the tab we open is redirected to the
-    // fallback website below if the scheme turns out to be wrong or the
-    // app isn't installed (instead of leaving it stuck on the browser's
-    // "address is invalid" error page).
+    // on web, so the "Open GCash"/"Open Maya" fallback link stays as-is.
     const path = DEEP_LINK_PATHS[type]?.[platform];
     const url = `${deepLink.app}${path ?? ""}`;
-    const win = window.open(url, "_blank");
+    window.open(url, "_blank");
     setOpenedApp(true);
-
-    window.setTimeout(() => {
-      try {
-        // If the OS handed off to the app, most mobile browsers auto-close
-        // this helper tab, so `win.closed` is true and we leave it alone.
-        // If the scheme failed, the tab is still open on an error page --
-        // redirect it forward to the real site instead.
-        if (win && !win.closed) {
-          win.location.href = deepLink.fallback;
-        }
-      } catch {
-        // Cross-origin/security restrictions on accessing `win` are safe
-        // to ignore here -- worst case the tab is just left as-is.
-      }
-    }, 1500);
   }
 
   async function handleComplete() {
@@ -503,11 +485,11 @@ export default function LogPage() {
             <div className="bg-ink-card border border-ink-line rounded-xl divide-y divide-dashed divide-ink-line">
               {isBankTransfer ? (
                 <>
-                  <SummaryRow label="Account name" value={accountName} copyable />
-                  <SummaryRow label="Account number" value={accountNumber} mono copyable />
+                  <SummaryRow label="Account name" value={accountName} />
+                  <SummaryRow label="Account number" value={accountNumber} mono />
                 </>
               ) : (
-                <SummaryRow label="Customer number" value={customerMobile} mono copyable />
+                <SummaryRow label="Customer number" value={customerMobile} mono />
               )}
               <SummaryRow label="Provider" value={platformLabel} />
               <SummaryRow label="Transaction" value={TX_LABELS[type]} />
@@ -646,69 +628,22 @@ function SummaryRow({
   value,
   mono,
   highlight,
-  copyable,
 }: {
   label: string;
   value: string;
   mono?: boolean;
   highlight?: boolean;
-  copyable?: boolean;
 }) {
-  const { showToast } = useToast();
-  const [justCopied, setJustCopied] = useState(false);
-
-  // Nothing sensible to copy -- render as a normal (non-interactive) row.
-  const canCopy = copyable && value && value !== "—";
-
-  async function handleCopy() {
-    try {
-      await navigator.clipboard.writeText(value);
-    } catch {
-      // navigator.clipboard needs a secure context (https/localhost) and
-      // isn't available on some very old browsers/webviews -- fall back
-      // to the legacy selection-based copy trick instead of failing silently.
-      const el = document.createElement("textarea");
-      el.value = value;
-      el.style.position = "fixed";
-      el.style.opacity = "0";
-      document.body.appendChild(el);
-      el.focus();
-      el.select();
-      document.execCommand("copy");
-      document.body.removeChild(el);
-    }
-    setJustCopied(true);
-    showToast("Copied to clipboard");
-    setTimeout(() => setJustCopied(false), 1500);
-  }
-
   return (
     <div className="flex justify-between items-center px-4 py-3">
       <span className="text-sm text-text-mid">{label}</span>
-      {canCopy ? (
-        <button
-          type="button"
-          onClick={handleCopy}
-          className={`flex items-center gap-1.5 text-sm rounded-md -mr-2 px-2 py-1 active:bg-ink transition-colors ${
-            mono ? "font-mono tabular" : ""
-          } ${highlight ? "font-semibold text-base" : "text-text-hi"}`}
-        >
-          {value}
-          {justCopied ? (
-            <Check size={14} className="text-green-400 shrink-0" />
-          ) : (
-            <Copy size={14} className="text-text-low shrink-0" />
-          )}
-        </button>
-      ) : (
-        <span
-          className={`text-sm ${mono ? "font-mono tabular" : ""} ${
-            highlight ? "font-semibold text-base" : "text-text-hi"
-          }`}
-        >
-          {value}
-        </span>
-      )}
+      <span
+        className={`text-sm ${mono ? "font-mono tabular" : ""} ${
+          highlight ? "font-semibold text-base" : "text-text-hi"
+        }`}
+      >
+        {value}
+      </span>
     </div>
   );
 }

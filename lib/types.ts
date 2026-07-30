@@ -84,8 +84,8 @@ export interface Transaction {
 // web/store link in a new tab if the scheme doesn't launch the app.
 export const APP_DEEP_LINKS: Record<Platform, { app: string; fallback: string; label: string }> = {
   gcash: { app: "gcash://", fallback: "https://www.gcash.com/", label: "Open GCash" },
-  maya: { app: "https://www.maya.ph/", fallback: "https://www.maya.ph/", label: "Open Maya" },
-  dito: { app: "https://dito.ph/", fallback: "https://dito.ph/", label: "Open DITO" },
+  maya: { app: "maya://", fallback: "https://www.maya.ph/", label: "Open Maya" },
+  dito: { app: "dito://", fallback: "https://dito.ph/", label: "Open DITO" },
 };
 
 // UNOFFICIAL, reverse-engineered screen deep-link paths, appended after the
@@ -136,6 +136,27 @@ export const DEFAULT_SETTINGS: AppSettings = {
   dito_load_fixed_fee: 0,
   dito_load_tiers: [{ min: 1, max: 1000, fee: 5 }],
 };
+
+// Which transaction types ADD to our float balance (customer sends us
+// e-money, we hand them cash) vs DRAW IT DOWN (we send e-money out, customer
+// pays us cash). Mirrors the direction logic in log_transaction() from
+// migration_fix_cash_direction.sql -- keep these in sync if that ever changes.
+export const BALANCE_INCREASING_TYPES: TxType[] = ["cash_out", "maya_cash_out"];
+
+export function isBalanceIncreasing(type: TxType): boolean {
+  return BALANCE_INCREASING_TYPES.includes(type);
+}
+
+// Signed effect of a transaction on our float balance: +1 when it adds to
+// our balance, -1 when it draws it down. For balance_adjustment rows the
+// direction is already captured in net_total (the signed correction delta),
+// since those can go either way depending on what the owner corrected to.
+export function balanceSign(t: Pick<Transaction, "type" | "net_total">): 1 | -1 {
+  if (t.type === "balance_adjustment") {
+    return Number(t.net_total) >= 0 ? 1 : -1;
+  }
+  return isBalanceIncreasing(t.type) ? 1 : -1;
+}
 
 export const TX_LABELS: Record<TxType, string> = {
   cash_in: "Cash In",
