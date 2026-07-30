@@ -240,7 +240,7 @@ export default function DashboardPage() {
           {totalProviderFee > 0 && (
             <div className="px-5 py-4 border-t border-dashed border-ink-line flex items-center justify-between">
               <span className="text-sm text-text-mid flex items-center gap-2">
-                <Coins size={15} /> Maya/DITO fees paid {isToday ? "today" : "that day"}
+                <Coins size={15} /> GCash/Maya/DITO fees paid {isToday ? "today" : "that day"}
               </span>
               <span className="font-mono tabular font-semibold text-lg text-out">
                 ₱{totalProviderFee.toFixed(2)}
