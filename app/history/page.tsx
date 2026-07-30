@@ -6,6 +6,7 @@ import { Transaction, Platform, TxType, TX_LABELS, PLATFORM_LABELS, PLATFORM_STY
 import { formatManilaTime } from "@/lib/manilaDate";
 import AppShell from "@/components/AppShell";
 import NoteEditModal from "@/components/NoteEditModal";
+import CopyableText from "@/components/CopyableText";
 import { useToast } from "@/components/Toast";
 import { Search, Download, Printer, ArrowDownCircle, ArrowUpCircle, Pencil } from "lucide-react";
 
@@ -245,13 +246,23 @@ export default function HistoryPage() {
                       {t.account_name || t.account_number ? (
                         <div className="leading-tight">
                           <div>{t.account_name ?? "—"}</div>
-                          <div className="font-mono tabular text-xs">{t.account_number ?? "—"}</div>
+                          <CopyableText
+                            value={t.account_number}
+                            label="Account number"
+                            className="font-mono tabular text-xs"
+                          />
                         </div>
                       ) : (
-                        <span className="font-mono tabular">{t.customer_mobile ?? "—"}</span>
+                        <CopyableText
+                          value={t.customer_mobile}
+                          label="Customer number"
+                          className="font-mono tabular"
+                        />
                       )}
                     </td>
-                    <td className="px-4 py-3 text-text-low">{t.reference_no ?? "—"}</td>
+                    <td className="px-4 py-3 text-text-low">
+                      <CopyableText value={t.reference_no} label="Reference number" />
+                    </td>
                     <td className="px-4 py-3 text-text-low">
                       {t.note ?? "—"}
                       {t.note_edited_at && (
@@ -350,15 +361,35 @@ export default function HistoryPage() {
                   </div>
                 )}
                 {(t.customer_mobile || t.account_name || t.account_number || t.reference_no || t.note) && (
-                  <div className="mt-2 pt-2 border-t border-dashed border-ink-line text-xs text-text-low space-x-3">
-                    {t.customer_mobile && <span className="font-mono tabular">#: {t.customer_mobile}</span>}
-                    {(t.account_name || t.account_number) && (
-                      <span>
-                        {t.account_name ?? "—"}{" "}
-                        <span className="font-mono tabular">({t.account_number ?? "—"})</span>
+                  <div className="mt-2 pt-2 border-t border-dashed border-ink-line text-xs text-text-low flex flex-wrap items-center gap-x-3 gap-y-1">
+                    {t.customer_mobile && (
+                      <span className="inline-flex items-center gap-1">
+                        #:{" "}
+                        <CopyableText
+                          value={t.customer_mobile}
+                          label="Customer number"
+                          className="font-mono tabular"
+                          iconSize={11}
+                        />
                       </span>
                     )}
-                    {t.reference_no && <span>Ref: {t.reference_no}</span>}
+                    {(t.account_name || t.account_number) && (
+                      <span className="inline-flex items-center gap-1">
+                        {t.account_name ?? "—"}{" "}
+                        <CopyableText
+                          value={t.account_number}
+                          label="Account number"
+                          className="font-mono tabular"
+                          iconSize={11}
+                        />
+                      </span>
+                    )}
+                    {t.reference_no && (
+                      <span className="inline-flex items-center gap-1">
+                        Ref:{" "}
+                        <CopyableText value={t.reference_no} label="Reference number" iconSize={11} />
+                      </span>
+                    )}
                     {t.note && (
                       <span>
                         {t.note}

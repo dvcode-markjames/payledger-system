@@ -19,6 +19,7 @@ import {
 } from "@/lib/types";
 import AppShell from "@/components/AppShell";
 import BalanceEditModal from "@/components/BalanceEditModal";
+import CopyableText from "@/components/CopyableText";
 import { Pencil, Check, Lock, ArrowLeft, ExternalLink } from "lucide-react";
 
 const GCASH_TYPES: TxType[] = ["cash_in", "cash_out", "load", "bank_transfer"];
@@ -486,10 +487,10 @@ export default function LogPage() {
               {isBankTransfer ? (
                 <>
                   <SummaryRow label="Account name" value={accountName} />
-                  <SummaryRow label="Account number" value={accountNumber} mono />
+                  <SummaryRow label="Account number" value={accountNumber} mono copyable />
                 </>
               ) : (
-                <SummaryRow label="Customer number" value={customerMobile} mono />
+                <SummaryRow label="Customer number" value={customerMobile} mono copyable />
               )}
               <SummaryRow label="Provider" value={platformLabel} />
               <SummaryRow label="Transaction" value={TX_LABELS[type]} />
@@ -504,7 +505,7 @@ export default function LogPage() {
                 mono
                 highlight
               />
-              <SummaryRow label="Reference number" value={reference || "—"} mono />
+              <SummaryRow label="Reference number" value={reference || "—"} mono copyable />
               <SummaryRow label="Note" value={note || "—"} />
             </div>
 
@@ -628,22 +629,26 @@ function SummaryRow({
   value,
   mono,
   highlight,
+  copyable,
 }: {
   label: string;
   value: string;
   mono?: boolean;
   highlight?: boolean;
+  copyable?: boolean;
 }) {
+  const valueClass = `text-sm ${mono ? "font-mono tabular" : ""} ${
+    highlight ? "font-semibold text-base" : "text-text-hi"
+  }`;
+
   return (
     <div className="flex justify-between items-center px-4 py-3">
       <span className="text-sm text-text-mid">{label}</span>
-      <span
-        className={`text-sm ${mono ? "font-mono tabular" : ""} ${
-          highlight ? "font-semibold text-base" : "text-text-hi"
-        }`}
-      >
-        {value}
-      </span>
+      {copyable ? (
+        <CopyableText value={value} label={label} className={valueClass} />
+      ) : (
+        <span className={valueClass}>{value}</span>
+      )}
     </div>
   );
 }
