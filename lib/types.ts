@@ -84,8 +84,8 @@ export interface Transaction {
 // web/store link in a new tab if the scheme doesn't launch the app.
 export const APP_DEEP_LINKS: Record<Platform, { app: string; fallback: string; label: string }> = {
   gcash: { app: "gcash://", fallback: "https://www.gcash.com/", label: "Open GCash" },
-  maya: { app: "maya://", fallback: "https://www.maya.ph/", label: "Open Maya" },
-  dito: { app: "dito://", fallback: "https://dito.ph/", label: "Open DITO" },
+  maya: { app: "https://www.maya.ph/", fallback: "https://www.maya.ph/", label: "Open Maya" },
+  dito: { app: "https://dito.ph/", fallback: "https://dito.ph/", label: "Open DITO" },
 };
 
 // UNOFFICIAL, reverse-engineered screen deep-link paths, appended after the
